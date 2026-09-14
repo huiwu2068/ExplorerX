@@ -156,6 +156,7 @@ public:
 	int LocateFileItemIndex(const TCHAR *szFileName) const;
 	bool InVirtualFolder() const;
 	HRESULT CopyItemsToClipboard(const std::vector<PidlAbsolute> &items, ClipboardAction action);
+	HRESULT TransferSelectedItemsToFolder(PCIDLIST_ABSOLUTE destination, TransferAction action);
 	void PasteShortcut();
 	void PasteHardLinks();
 	void PasteSymLinks();

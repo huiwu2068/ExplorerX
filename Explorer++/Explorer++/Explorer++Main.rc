@@ -1,3 +1,4 @@
 #include "Explorer++.rc"
 #include "Explorer++VersionInfo.rc"
 #include "Explorer++_NoTranslation.rc"
+#include "Explorer++Terminal.rc"

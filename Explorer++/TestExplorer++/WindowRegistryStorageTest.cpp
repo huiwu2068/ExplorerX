@@ -7,6 +7,7 @@
 #include "MainRebarStorage.h"
 #include "RegistryStorageTestHelper.h"
 #include "TabStorage.h"
+#include "TabStorageTestHelper.h"
 #include "WindowStorage.h"
 #include "WindowStorageTestHelper.h"
 #include <gtest/gtest.h>
@@ -46,6 +47,16 @@ TEST_F(WindowRegistryStorageTest, V2LoadFallback)
 TEST_F(WindowRegistryStorageTest, V2Save)
 {
 	auto referenceWindows = BuildV2ReferenceWindows(TestStorageType::Registry);
+	referenceWindows[0].paneLayoutVersion = 1;
+	referenceWindows[0].dualPane = true;
+	referenceWindows[0].activePane = BrowserPaneId::Right;
+	referenceWindows[0].dualPaneSplitRatio = 6300;
+	referenceWindows[0].rightPaneTabs = {
+		CreateTabStorageFromDirectory(L"c:\\right-pane", TestStorageType::Registry),
+	};
+	referenceWindows[0].rightPaneSelectedTab = 0;
+	referenceWindows[0].everythingSearchPaneVisible = true;
+	referenceWindows[0].everythingSearchPaneWidth = 515;
 
 	WindowRegistryStorage::Save(m_applicationTestKey.get(), referenceWindows);
 

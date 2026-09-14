@@ -6,14 +6,22 @@
 
 class TabContainer;
 
+enum class BrowserPaneId
+{
+	Left,
+	Right
+};
+
 // Each browser pane contains a set of tabs, with each tab showing a file listing.
 class BrowserPane
 {
 public:
-	BrowserPane(TabContainer *tabContainer);
+	BrowserPane(BrowserPaneId id, TabContainer *tabContainer);
 
+	BrowserPaneId GetId() const;
 	TabContainer *GetTabContainer() const;
 
 private:
+	const BrowserPaneId m_id;
 	TabContainer *m_tabContainer;
 };

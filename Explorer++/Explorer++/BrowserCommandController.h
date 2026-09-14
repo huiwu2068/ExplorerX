@@ -9,6 +9,7 @@
 #include "ShellBrowser/SortModes.h"
 #include "../Helper/ShellHelper.h"
 #include <boost/core/noncopyable.hpp>
+#include <optional>
 
 class AppServices;
 class BrowserWindow;
@@ -37,11 +38,15 @@ private:
 	bool IsCommandContextSensitive(int command) const;
 
 	bool CanStartCommandPrompt() const;
+	bool CanStartWindowsTerminal() const;
+	bool CanStartExternalTerminal() const;
+	bool IsWindowsTerminalAvailable() const;
 	bool CanChangeMainFontSize(FontSizeType sizeType) const;
 
 	void OnSortBy(SortMode sortMode);
 	void OnCloseTab();
 	void StartCommandPrompt(LaunchProcessFlags flags = LaunchProcessFlags::None);
+	void StartWindowsTerminal();
 	void CopyFolderPath() const;
 	void OnChangeMainFontSize(FontSizeType sizeType);
 	void OnResetMainFontSize();
@@ -67,4 +72,5 @@ private:
 	BrowserWindow *const m_browser;
 	AppServices *const m_appServices;
 	Config *const m_config;
+	mutable std::optional<bool> m_isWindowsTerminalAvailable;
 };

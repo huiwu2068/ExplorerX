@@ -31,5 +31,6 @@ BETTER_ENUM(MainToolbarButton, int,
 	DeletePermanently = 45022,
 	SplitFile = 45023,
 	MergeFiles = 45024,
-	CloseTab = 45025
+	CloseTab = 45025,
+	WindowsTerminal = 45026
 )

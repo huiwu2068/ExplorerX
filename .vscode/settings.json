@@ -1,0 +1,9 @@
+{
+  "C_Cpp.intelliSenseEngine": "disabled",
+  "clangd.path": "C:\\Program Files\\LLVM\\bin\\clangd.exe",
+  "clangd.arguments": [
+    "--background-index",
+    "--header-insertion=never",
+    "--clang-tidy"
+  ]
+}

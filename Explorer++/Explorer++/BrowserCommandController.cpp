@@ -56,6 +56,37 @@ constexpr bool AreSelectTabItemIdsContiguous()
 // present.
 static_assert(AreSelectTabItemIdsContiguous());
 
+std::wstring QuoteCommandLineArgument(const std::wstring &argument)
+{
+	std::wstring quotedArgument = L"\"";
+	size_t backslashCount = 0;
+
+	for (wchar_t character : argument)
+	{
+		if (character == L'\\')
+		{
+			backslashCount++;
+			continue;
+		}
+
+		if (character == L'\"')
+		{
+			quotedArgument.append(backslashCount * 2 + 1, L'\\');
+			quotedArgument.push_back(L'\"');
+			backslashCount = 0;
+			continue;
+		}
+
+		quotedArgument.append(backslashCount, L'\\');
+		quotedArgument.push_back(character);
+		backslashCount = 0;
+	}
+
+	quotedArgument.append(backslashCount * 2, L'\\');
+	quotedArgument.push_back(L'\"');
+	return quotedArgument;
+}
+
 }
 
 BrowserCommandController::BrowserCommandController(BrowserWindow *browser,
@@ -81,6 +112,9 @@ bool BrowserCommandController::IsCommandEnabled(int command) const
 	case IDM_FILE_OPENCOMMANDPROMPT:
 	case IDM_FILE_OPENCOMMANDPROMPTADMINISTRATOR:
 		return CanStartCommandPrompt();
+
+	case IDM_FILE_OPENWINDOWSTERMINAL:
+		return CanStartWindowsTerminal();
 
 	case IDM_EDIT_SELECTNONE:
 		return GetActiveShellBrowser()->CanClearSelection();
@@ -123,6 +157,16 @@ bool BrowserCommandController::IsCommandEnabled(int command) const
 
 bool BrowserCommandController::CanStartCommandPrompt() const
 {
+	return CanStartExternalTerminal();
+}
+
+bool BrowserCommandController::CanStartWindowsTerminal() const
+{
+	return CanStartExternalTerminal() && IsWindowsTerminalAvailable();
+}
+
+bool BrowserCommandController::CanStartExternalTerminal() const
+{
 	const auto *shellBrowser = GetActiveShellBrowser();
 
 	SFGAOF attributes = SFGAO_FILESYSTEM | SFGAO_STREAM;
@@ -145,6 +189,18 @@ bool BrowserCommandController::CanStartCommandPrompt() const
 	}
 
 	return true;
+}
+
+bool BrowserCommandController::IsWindowsTerminalAvailable() const
+{
+	if (m_isWindowsTerminalAvailable)
+	{
+		return *m_isWindowsTerminalAvailable;
+	}
+
+	DWORD requiredLength = SearchPath(nullptr, L"wt.exe", nullptr, 0, nullptr, nullptr);
+	m_isWindowsTerminalAvailable = requiredLength != 0;
+	return *m_isWindowsTerminalAvailable;
 }
 
 bool BrowserCommandController::CanChangeMainFontSize(FontSizeType sizeType) const
@@ -199,6 +255,10 @@ void BrowserCommandController::ExecuteCommand(int command, OpenFolderDisposition
 
 	case IDM_FILE_OPENCOMMANDPROMPTADMINISTRATOR:
 		StartCommandPrompt(LaunchProcessFlags::Elevated);
+		break;
+
+	case IDM_FILE_OPENWINDOWSTERMINAL:
+		StartWindowsTerminal();
 		break;
 
 	case IDM_FILE_COPYFOLDERPATH:
@@ -578,6 +638,28 @@ void BrowserCommandController::StartCommandPrompt(LaunchProcessFlags flags)
 	}
 
 	LaunchProcess(nullptr, fullPath.c_str(), parameters, directoryPath.get(), flags);
+}
+
+void BrowserCommandController::StartWindowsTerminal()
+{
+	const auto *shellBrowser = GetActiveShellBrowser();
+
+	wil::unique_cotaskmem_string directoryPath;
+	HRESULT hr = SHGetNameFromIDList(shellBrowser->GetDirectory().Raw(), SIGDN_FILESYSPATH,
+		&directoryPath);
+
+	if (FAILED(hr))
+	{
+		return;
+	}
+
+	std::wstring parameters = L"-d "s + QuoteCommandLineArgument(directoryPath.get());
+
+	if (!LaunchProcess(nullptr, L"wt.exe", parameters, directoryPath.get(),
+		LaunchProcessFlags::None))
+	{
+		m_isWindowsTerminalAvailable = false;
+	}
 }
 
 void BrowserCommandController::CopyFolderPath() const

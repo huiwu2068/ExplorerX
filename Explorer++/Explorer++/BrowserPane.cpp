@@ -5,8 +5,15 @@
 #include "stdafx.h"
 #include "BrowserPane.h"
 
-BrowserPane::BrowserPane(TabContainer *tabContainer) : m_tabContainer(tabContainer)
+BrowserPane::BrowserPane(BrowserPaneId id, TabContainer *tabContainer) :
+	m_id(id),
+	m_tabContainer(tabContainer)
 {
+}
+
+BrowserPaneId BrowserPane::GetId() const
+{
+	return m_id;
 }
 
 TabContainer *BrowserPane::GetTabContainer() const

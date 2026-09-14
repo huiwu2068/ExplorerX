@@ -1084,6 +1084,23 @@ HRESULT ShellBrowserImpl::CopyItemsToClipboard(const std::vector<PidlAbsolute> &
 	return hr;
 }
 
+HRESULT ShellBrowserImpl::TransferSelectedItemsToFolder(PCIDLIST_ABSOLUTE destination,
+	TransferAction action)
+{
+	auto pidls = GetSelectedItemPidls();
+	if (pidls.empty())
+	{
+		return E_INVALIDARG;
+	}
+
+	wil::com_ptr_nothrow<IShellItem> destinationFolder;
+	RETURN_IF_FAILED(SHCreateItemFromIDList(destination, IID_PPV_ARGS(&destinationFolder)));
+	std::vector<PCIDLIST_ABSOLUTE> rawPidls;
+	std::ranges::transform(pidls, std::back_inserter(rawPidls),
+		[](const auto &pidl) { return pidl.Raw(); });
+	return FileOperations::CopyFiles(m_owner, destinationFolder.get(), rawPidls, action);
+}
+
 void ShellBrowserImpl::UpdateCurrentClipboardObject(
 	wil::com_ptr_nothrow<IDataObject> clipboardDataObject)
 {

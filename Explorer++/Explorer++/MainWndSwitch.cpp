@@ -45,6 +45,7 @@
 #include "TabRestorerMenu.h"
 #include "ViewsMenuBuilder.h"
 #include "../Helper/Controls.h"
+#include "../Helper/FileOperations.h"
 #include "../Helper/ListViewHelper.h"
 #include "../Helper/ShellHelper.h"
 #include "../Helper/WindowHelper.h"
@@ -98,6 +99,14 @@ LRESULT Explorerplusplus::WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam, LP
 	break;
 
 	case WM_TIMER:
+		if (wParam == EVERYTHING_SEARCH_TIMER_ID)
+		{
+			KillTimer(m_hwnd, EVERYTHING_SEARCH_TIMER_ID);
+			m_everythingSearchController.CancelPendingRequests();
+			ShowEverythingSearchError(
+				L"Everything search timed out. The previous results were kept; try again.");
+			return 0;
+		}
 		if (wParam == LISTVIEW_ITEM_CHANGED_TIMER_ID)
 		{
 			Tab &selectedTab = GetActivePane()->GetTabContainer()->GetSelectedTab();
@@ -161,6 +170,9 @@ LRESULT Explorerplusplus::WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam, LP
 		free(pDWFolderSizeCompletion);
 	}
 	break;
+
+	case WM_COPYDATA:
+		return OnEverythingCopyData(reinterpret_cast<const COPYDATASTRUCT *>(lParam));
 
 	case WM_NDW_RCLICK:
 	{
@@ -234,6 +246,21 @@ LRESULT Explorerplusplus::WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam, LP
 
 LRESULT Explorerplusplus::CommandHandler(HWND hwnd, HWND control, UINT id, UINT notificationCode)
 {
+	if ((id == EVERYTHING_SEARCH_BUTTON_ID || id == EVERYTHING_SEARCH_CLEAR_BUTTON_ID)
+		&& notificationCode == BN_CLICKED)
+	{
+		if (id == EVERYTHING_SEARCH_BUTTON_ID)
+		{
+			SubmitEverythingSearch();
+		}
+		else if (id == EVERYTHING_SEARCH_CLEAR_BUTTON_ID)
+		{
+			SetWindowText(m_everythingSearchEdit, L"");
+			SetFocus(m_everythingSearchEdit);
+		}
+		return 0;
+	}
+
 	// Several toolbars will handle their own items.
 	if (control
 		&& ((m_drivesToolbar && control == m_drivesToolbar->GetView()->GetHWND())
@@ -311,6 +338,11 @@ LRESULT Explorerplusplus::HandleMenuOrToolbarButtonOrAccelerator(HWND hwnd, UINT
 	case MainToolbarButton::OpenCommandPrompt:
 	case IDM_FILE_OPENCOMMANDPROMPT:
 		m_commandController.ExecuteCommand(IDM_FILE_OPENCOMMANDPROMPT);
+		break;
+
+	case MainToolbarButton::WindowsTerminal:
+	case IDM_FILE_OPENWINDOWSTERMINAL:
+		m_commandController.ExecuteCommand(IDM_FILE_OPENWINDOWSTERMINAL);
 		break;
 
 	case IDM_FILE_OPENCOMMANDPROMPTADMINISTRATOR:
@@ -418,7 +450,26 @@ LRESULT Explorerplusplus::HandleMenuOrToolbarButtonOrAccelerator(HWND hwnd, UINT
 		break;
 
 	case IDM_VIEW_DUAL_PANE:
-		m_config->dualPane = !m_config->dualPane;
+		SetDualPaneEnabled(!m_config->dualPane);
+		break;
+
+	case IDM_EDIT_COPY_TO_OTHER_PANE:
+		TransferToOtherPane(TransferAction::Copy);
+		break;
+
+	case IDM_EDIT_MOVE_TO_OTHER_PANE:
+		TransferToOtherPane(TransferAction::Move);
+		break;
+
+	case IDM_VIEW_SWITCH_TO_OTHER_PANE:
+		if (m_config->dualPane && m_secondaryBrowserPane)
+		{
+			SetActivePane(m_activePane == m_browserPane.get() ? m_secondaryBrowserPane.get()
+				: m_browserPane.get());
+			SetFocus(m_hActiveListView);
+			UpdateWindowStates(GetActivePane()->GetTabContainer()->GetSelectedTab());
+			UpdateLayout();
+		}
 		break;
 
 	case IDM_VIEW_STATUSBAR:
@@ -986,8 +1037,49 @@ LRESULT CALLBACK Explorerplusplus::NotifyHandler(HWND hwnd, UINT msg, WPARAM wPa
 
 	switch (nmhdr->code)
 	{
+	case BCN_DROPDOWN:
+		if (nmhdr->hwndFrom == m_everythingSearchButton)
+		{
+			ShowEverythingSearchMenu();
+			return 0;
+		}
+		break;
+
+	case LVN_GETDISPINFOW:
+		if (nmhdr->hwndFrom == m_everythingSearchListView)
+		{
+			OnEverythingListGetDisplayInfo(reinterpret_cast<NMLVDISPINFOW *>(lParam));
+			return 0;
+		}
+		break;
+
+	case LVN_ODCACHEHINT:
+		if (nmhdr->hwndFrom == m_everythingSearchListView)
+		{
+			OnEverythingListCacheHint(reinterpret_cast<const NMLVCACHEHINT *>(lParam));
+			return 0;
+		}
+		break;
+
 	case LVN_KEYDOWN:
+		if (nmhdr->hwndFrom == m_everythingSearchListView)
+		{
+			const auto *keyDown = reinterpret_cast<const NMLVKEYDOWN *>(lParam);
+			if (keyDown->wVKey == VK_RETURN)
+			{
+				ActivateEverythingSearchResult(IsKeyDown(VK_CONTROL));
+			}
+			return 0;
+		}
 		return OnListViewKeyDown(lParam);
+
+	case NM_DBLCLK:
+		if (nmhdr->hwndFrom == m_everythingSearchListView)
+		{
+			ActivateEverythingSearchResult(false);
+			return 0;
+		}
+		break;
 
 	case TBN_ENDADJUST:
 		if (GetLifecycleState() == LifecycleState::Main)

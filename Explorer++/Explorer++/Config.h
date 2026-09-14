@@ -8,6 +8,7 @@
 #include "CustomFont.h"
 #include "DefaultColumns.h"
 #include "DisplayWindowDefaults.h"
+#include "EverythingQueryBuilder.h"
 #include "FontHelper.h"
 #include "IconSet.h"
 #include "LanguageHelper.h"
@@ -44,6 +45,8 @@ struct Config
 	const std::wstring defaultTabDirectoryStatic = GetComputerFolderPath();
 	ChangeNotifyMode changeNotifyMode = ChangeNotifyMode::Shell;
 	bool dualPane = false;
+	int dualPaneSplitRatio = 5000;
+	EverythingSearchSettings everythingSearchSettings;
 	ValueWrapper<bool> showStatusBar = true;
 	ValueWrapper<bool> showDisplayWindow = true;
 	bool alwaysOpenNewTab = false;

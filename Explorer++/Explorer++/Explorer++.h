@@ -9,6 +9,7 @@
 #include "BrowserPane.h"
 #include "BrowserWindow.h"
 #include "CoreInterface.h"
+#include "EverythingSearchController.h"
 #include "IconFetcherImpl.h"
 #include "LayoutDefaults.h"
 #include "Literals.h"
@@ -62,6 +63,7 @@ class StatusBar;
 class TabBacking;
 class TabContainer;
 class TabEvents;
+enum class TransferAction;
 class TaskbarThumbnails;
 class ThemeWindowTracker;
 class WindowSubclass;
@@ -133,9 +135,22 @@ private:
 	static const UINT REBAR_BAND_ID_BOOKMARKS_TOOLBAR = 2;
 	static const UINT REBAR_BAND_ID_DRIVES_TOOLBAR = 3;
 	static const UINT REBAR_BAND_ID_APPLICATIONS_TOOLBAR = 4;
+	static const UINT REBAR_BAND_ID_EVERYTHING_SEARCH = 5;
+	static const UINT EVERYTHING_SEARCH_EDIT_ID = 41001;
+	static const UINT EVERYTHING_SEARCH_BUTTON_ID = 41002;
+	static const UINT EVERYTHING_SEARCH_CLEAR_BUTTON_ID = 41003;
+	static const UINT EVERYTHING_SEARCH_SCOPE_CURRENT_ID = 41010;
+	static const UINT EVERYTHING_SEARCH_SCOPE_GLOBAL_ID = 41011;
+	static const UINT EVERYTHING_SEARCH_MATCH_CASE_ID = 41012;
+	static const UINT EVERYTHING_SEARCH_MATCH_WHOLE_WORD_ID = 41013;
+	static const UINT EVERYTHING_SEARCH_REGEX_ID = 41014;
+	static const UINT EVERYTHING_SEARCH_IGNORE_DIACRITICS_ID = 41015;
+	static const UINT EVERYTHING_SEARCH_MATCH_PATH_ID = 41016;
 
 	static const UINT_PTR LISTVIEW_ITEM_CHANGED_TIMER_ID = 100001;
 	static const UINT LISTVIEW_ITEM_CHANGED_TIMEOUT = 50;
+	static const UINT_PTR EVERYTHING_SEARCH_TIMER_ID = 100002;
+	static const UINT EVERYTHING_SEARCH_TIMEOUT = 5000;
 
 	static inline constexpr COLORREF TAB_BAR_DARK_MODE_BACKGROUND_COLOR = RGB(25, 25, 25);
 
@@ -206,6 +221,14 @@ private:
 	void OnSelectColumns();
 	void OnDestroyFiles();
 	void OnSearch();
+	bool OnEverythingCopyData(const COPYDATASTRUCT *copyData);
+	void CreateEverythingSearchPane();
+	void OnEverythingSearchResults(const EverythingIpcReply &reply);
+	void OnEverythingQueryError(EverythingQueryError error);
+	void ShowEverythingSearchError(const std::wstring &message);
+	void OnEverythingListGetDisplayInfo(NMLVDISPINFOW *displayInfo);
+	void OnEverythingListCacheHint(const NMLVCACHEHINT *cacheHint);
+	void ActivateEverythingSearchResult(bool openFileDirectly);
 	void OnShowOptions();
 
 	void OnGoToOffset(int offset);
@@ -221,6 +244,12 @@ private:
 
 	/* Tabs. */
 	void InitializeTabs();
+	void CreateSecondaryPane(const WindowStorageData *storageData = nullptr);
+	void SetDualPaneEnabled(bool enabled);
+	LRESULT DualPaneSplitterSubclass(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+	bool CanTransferToOtherPane() const;
+	void TransferToOtherPane(TransferAction action);
+	void SetActivePane(BrowserPane *pane);
 	void MaybeUpdateTabBarVisibility();
 	void OnTabCreated(const Tab &tab);
 	void OnTabSelected(const Tab &tab);
@@ -231,7 +260,7 @@ private:
 	void ShowTabBar();
 	void HideTabBar();
 	void CreateInitialTabs(const WindowStorageData *storageData);
-	void CreateTabsFromStorageData(const WindowStorageData &storageData);
+	void CreateTabsFromStorageData(const std::vector<TabStorageData> &tabs, int selectedTab);
 	void CreateCommandLineTabs();
 	void OnTabListViewSelectionChanged(const ShellBrowser *shellBrowser);
 
@@ -251,6 +280,9 @@ private:
 	void CreateAddressBar();
 	void CreateMainToolbar(
 		const std::optional<MainToolbarStorage::MainToolbarButtons> &initialButtons);
+	void CreateEverythingSearchBar();
+	void SubmitEverythingSearch();
+	void ShowEverythingSearchMenu();
 	void CreateBookmarksToolbar();
 	void CreateDrivesToolbar();
 	void CreateApplicationToolbar();
@@ -344,6 +376,9 @@ private:
 	HWND m_hwnd;
 
 	BrowserCommandController m_commandController;
+	EverythingSearchController m_everythingSearchController;
+	std::vector<EverythingSearchResult> m_everythingSearchResults;
+	std::uint32_t m_everythingSearchTotalResults = 0;
 
 	/** Internal state. **/
 	HWND m_lastActiveWindow;
@@ -359,6 +394,13 @@ private:
 	BrowserView *m_view = nullptr;
 	AddressBar *m_addressBar = nullptr;
 	TabBacking *m_tabBacking = nullptr;
+	TabBacking *m_secondaryTabBacking = nullptr;
+	HWND m_dualPaneSplitter = nullptr;
+	bool m_draggingDualPaneSplitter = false;
+	int m_dualPaneWorkspaceLeft = 0;
+	int m_dualPaneWorkspaceWidth = 0;
+	std::vector<TabStorageData> m_preservedRightPaneTabs;
+	int m_preservedRightPaneSelectedTab = 0;
 	StatusBar *m_statusBar = nullptr;
 
 	DisplayWindow *m_displayWindow = nullptr;
@@ -377,10 +419,16 @@ private:
 
 	// Treeview
 	HolderWindow *m_treeViewHolder = nullptr;
+	HolderWindow *m_everythingSearchHolder = nullptr;
+	HWND m_everythingSearchListView = nullptr;
+	bool m_everythingSearchPaneVisible = false;
+	int m_everythingSearchPaneWidth = 420;
 	ShellTreeView *m_shellTreeView = nullptr;
 	int m_treeViewWidth = LayoutDefaults::DEFAULT_TREEVIEW_WIDTH;
 
 	std::unique_ptr<BrowserPane> m_browserPane;
+	std::unique_ptr<BrowserPane> m_secondaryBrowserPane;
+	BrowserPane *m_activePane = nullptr;
 
 	/* Tabs. */
 	wil::unique_hbrush m_tabBarBackgroundBrush;
@@ -429,6 +477,9 @@ private:
 
 	/* Toolbars. */
 	MainToolbar *m_mainToolbar;
+	HWND m_everythingSearchBar = nullptr;
+	HWND m_everythingSearchEdit = nullptr;
+	HWND m_everythingSearchButton = nullptr;
 	DrivesToolbar *m_drivesToolbar = nullptr;
 	Applications::ApplicationExecutorImpl m_applicationExecutor;
 	Applications::ApplicationToolbar *m_applicationToolbar = nullptr;

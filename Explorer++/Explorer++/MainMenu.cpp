@@ -92,6 +92,17 @@ void Explorerplusplus::InitializeMainMenu()
 	{
 		DeleteMenu(mainMenu, IDM_VIEW_DUAL_PANE, MF_BYCOMMAND);
 	}
+	else
+	{
+		HMENU editMenu = MenuHelper::FindParentMenu(mainMenu, IDM_EDIT_COPYTOFOLDER);
+		MenuHelper::AddSeparator(editMenu);
+		MenuHelper::AddStringItem(editMenu, IDM_EDIT_COPY_TO_OTHER_PANE,
+			L"Copy to &Other Pane");
+		MenuHelper::AddStringItem(editMenu, IDM_EDIT_MOVE_TO_OTHER_PANE,
+			L"Move to Other &Pane");
+		MenuHelper::AddStringItem(editMenu, IDM_VIEW_SWITCH_TO_OTHER_PANE,
+			L"Switch to Other Pane");
+	}
 
 	if (!m_featureList->IsEnabled(Feature::Plugins))
 	{
@@ -469,6 +480,13 @@ void Explorerplusplus::SetMainMenuItemStates(HMENU mainMenu)
 		m_commandController.IsCommandEnabled(IDM_EDIT_MOVETOFOLDER));
 	MenuHelper::EnableItem(mainMenu, IDM_EDIT_COPYTOFOLDER,
 		m_commandController.IsCommandEnabled(IDM_EDIT_COPYTOFOLDER));
+	if (m_featureList->IsEnabled(Feature::DualPane))
+	{
+		MenuHelper::EnableItem(mainMenu, IDM_EDIT_COPY_TO_OTHER_PANE, CanTransferToOtherPane());
+		MenuHelper::EnableItem(mainMenu, IDM_EDIT_MOVE_TO_OTHER_PANE, CanTransferToOtherPane());
+		MenuHelper::EnableItem(mainMenu, IDM_VIEW_SWITCH_TO_OTHER_PANE,
+			m_config->dualPane && m_secondaryBrowserPane != nullptr);
+	}
 	MenuHelper::EnableItem(mainMenu, IDM_EDIT_WILDCARDDESELECT,
 		m_commandController.IsCommandEnabled(IDM_EDIT_WILDCARDDESELECT));
 	MenuHelper::EnableItem(mainMenu, IDM_EDIT_SELECTNONE,

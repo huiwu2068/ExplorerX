@@ -33,6 +33,7 @@ const std::unordered_map<std::wstring, int> ACCELERATOR_MAPPINGS = {
 	{ L"clone_window", IDM_FILE_CLONEWINDOW },
 	{ L"save_directory_listing", IDM_FILE_SAVEDIRECTORYLISTING },
 	{ L"open_command_prompt", IDM_FILE_OPENCOMMANDPROMPT },
+	{ L"open_windows_terminal", IDM_FILE_OPENWINDOWSTERMINAL },
 	{ L"open_command_prompt_as_administrator", IDM_FILE_OPENCOMMANDPROMPTADMINISTRATOR },
 	{ L"copy_folder_path", IDM_FILE_COPYFOLDERPATH },
 	{ L"copy_file_paths", IDM_FILE_COPYITEMPATH },

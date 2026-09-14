@@ -92,6 +92,18 @@ TEST_F(MainToolbarRegistryStorageTest, Save)
 	EXPECT_EQ(*loadedButtons, referenceButtons);
 }
 
+TEST_F(MainToolbarRegistryStorageTest, SaveWithWindowsTerminal)
+{
+	MainToolbarStorage::MainToolbarButtons buttons({ MainToolbarButton::WindowsTerminal });
+
+	MainToolbarStorage::SaveToRegistry(m_applicationTestKey.get(), VALUE_NAME, buttons);
+
+	auto loadedButtons =
+		MainToolbarStorage::LoadFromRegistry(m_applicationTestKey.get(), VALUE_NAME);
+	ASSERT_TRUE(loadedButtons.has_value());
+	EXPECT_EQ(*loadedButtons, buttons);
+}
+
 class MainToolbarXmlStorageTest : public XmlStorageTest
 {
 protected:
@@ -138,4 +150,25 @@ TEST_F(MainToolbarXmlStorageTest, Save)
 	ASSERT_TRUE(loadedButtons.has_value());
 
 	EXPECT_EQ(*loadedButtons, referenceButtons);
+}
+
+TEST_F(MainToolbarXmlStorageTest, SaveWithWindowsTerminal)
+{
+	auto xmlDocumentData = CreateXmlDocument();
+
+	wil::com_ptr_nothrow<IXMLDOMElement> settingsNode;
+	auto bstr = wil::make_bstr_nothrow(L"Settings");
+	HRESULT hr = xmlDocumentData.xmlDocument->createElement(bstr.get(), &settingsNode);
+	ASSERT_EQ(hr, S_OK);
+
+	wil::com_ptr_nothrow<IXMLDOMElement> mainToolbarNode;
+	XMLSettings::CreateElementNode(xmlDocumentData.xmlDocument.get(), &mainToolbarNode,
+		settingsNode.get(), L"Setting", NODE_NAME);
+
+	MainToolbarStorage::MainToolbarButtons buttons({ MainToolbarButton::WindowsTerminal });
+	MainToolbarStorage::SaveToXml(xmlDocumentData.xmlDocument.get(), mainToolbarNode.get(), buttons);
+
+	auto loadedButtons = MainToolbarStorage::LoadFromXml(mainToolbarNode.get());
+	ASSERT_TRUE(loadedButtons.has_value());
+	EXPECT_EQ(*loadedButtons, buttons);
 }

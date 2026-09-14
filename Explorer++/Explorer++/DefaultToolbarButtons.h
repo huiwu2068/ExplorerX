@@ -27,6 +27,7 @@ const MainToolbarButton DEFAULT_TOOLBAR_BUTTONS[] = {
 	MainToolbarButton::Separator,
 	MainToolbarButton::Views,
 	MainToolbarButton::OpenCommandPrompt,
+	MainToolbarButton::WindowsTerminal,
 	MainToolbarButton::Refresh,
 	MainToolbarButton::Separator,
 	MainToolbarButton::AddBookmark,

@@ -6,6 +6,7 @@
 
 #include "LayoutDefaults.h"
 #include "MainToolbarStorage.h"
+#include "BrowserPane.h"
 #include "../Helper/BetterEnumsWrapper.h"
 #include <optional>
 #include <vector>
@@ -34,6 +35,17 @@ struct WindowStorageData
 	int treeViewWidth = LayoutDefaults::DEFAULT_TREEVIEW_WIDTH;
 	int displayWindowWidth = LayoutDefaults::DEFAULT_DISPLAY_WINDOW_WIDTH;
 	int displayWindowHeight = LayoutDefaults::DEFAULT_DISPLAY_WINDOW_HEIGHT;
+
+	// PaneLayoutVersion is zero for legacy data. The left-pane tabs are mirrored in tabs so older
+	// versions can still restore a useful window.
+	int paneLayoutVersion = 0;
+	bool dualPane = false;
+	BrowserPaneId activePane = BrowserPaneId::Left;
+	int dualPaneSplitRatio = 5000;
+	std::vector<TabStorageData> rightPaneTabs;
+	int rightPaneSelectedTab = 0;
+	bool everythingSearchPaneVisible = false;
+	int everythingSearchPaneWidth = 420;
 
 	// This is only used in tests.
 	bool operator==(const WindowStorageData &other) const;

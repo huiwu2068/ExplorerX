@@ -1,0 +1,145 @@
+# Machine-readable project profile for AI assistants and helper scripts.
+# Fill every REQUIRED_TODO before using this template in a real project.
+
+project:
+  name: REQUIRED_TODO
+  type: REQUIRED_TODO # frontend | backend | fullstack | library | cli | mobile | data-ai | infra | docs | other
+  mission: REQUIRED_TODO
+  primary_language: REQUIRED_TODO
+  package_manager: OPTIONAL_TODO
+
+entrypoints:
+  app:
+    - REQUIRED_TODO
+  tests:
+    - OPTIONAL_TODO
+  config:
+    - OPTIONAL_TODO
+
+commands:
+  install: REQUIRED_TODO
+  dev: REQUIRED_TODO
+  test: REQUIRED_TODO
+  build: REQUIRED_TODO
+  lint: OPTIONAL_TODO
+  format: OPTIONAL_TODO
+  clean: OPTIONAL_TODO
+
+paths:
+  source:
+    - REQUIRED_TODO
+  tests:
+    - OPTIONAL_TODO
+  docs:
+    - doc
+  generated:
+    - OPTIONAL_TODO
+  runtime_artifacts:
+    - OPTIONAL_TODO
+  never_modify_without_confirmation:
+    - REQUIRED_TODO
+  high_risk:
+    - OPTIONAL_TODO
+
+context_routes:
+  always:
+    p0:
+      - AGENTS.md
+      - .ai/project_state.md
+      - .ai/project.yml
+      - task-related code, tests, logs, or user-provided material
+  global_p2:
+    - path: doc/09_note
+      when: need project-specific mechanisms, troubleshooting methods, or long-lived notes
+  feature:
+    p0:
+      - doc/04_features
+    p1:
+      - path: doc/02_contracts
+        when: involves API, event, schema, or compatibility
+      - path: doc/03_modules
+        when: involves module implementation or boundary
+      - path: doc/06_lld
+        when: complex logic, state machine, concurrency, or failure paths
+    p2:
+      - path: doc/07_decisions
+        when: need historical technical rationale
+      - path: doc/10_references
+        when: need external specs or mechanism background
+  bugfix:
+    p0:
+      - MEMORY.md
+      - memory
+      - real logs, error output, failing tests, or minimal reproduction
+    p1:
+      - path: doc/03_modules
+        when: related module is identified
+      - path: doc/08_runbooks
+        when: involves environment, deployment, rollback, or diagnostics
+    p2:
+      - path: doc/07_decisions
+        when: fix may touch architectural tradeoffs
+      - path: doc/10_references
+        when: need external mechanism or spec background
+  api_change:
+    p0:
+      - doc/02_contracts
+    p1:
+      - path: doc/07_decisions
+        when: involves compatibility commitments, versioning, or major tradeoffs
+      - path: doc/04_features
+        when: affects user-facing or system behavior
+      - path: doc/06_lld
+        when: affects state machine, data structures, failure paths, or migration
+    p2:
+      - path: doc/10_references
+        when: need external protocol, SDK, or specification background
+  architecture:
+    p0:
+      - doc/01_architecture
+      - doc/07_decisions
+    p1:
+      - path: doc/02_contracts
+        when: affects API, event, or schema
+      - path: doc/03_modules
+        when: affects module boundaries
+    p2:
+      - path: doc/10_references
+        when: need external references, benchmarks, or standards
+  deployment:
+    p0:
+      - doc/08_runbooks
+    p1:
+      - path: .ai/verification.md
+        when: need verification levels, evidence, or high-risk validation
+      - path: .ai/project.yml
+        when: need commands or path definitions
+    p2:
+      - path: memory
+        when: investigating historical environment or release issues
+  lld:
+    p0:
+      - doc/06_lld
+    p1:
+      - path: doc/04_features
+        when: need feature goals, non-goals, or user flow
+      - path: doc/02_contracts
+        when: involves API, event, or data format
+      - path: doc/03_modules
+        when: involves module responsibility, boundary, or dependency
+    p2:
+      - path: doc/07_decisions
+        when: need historical technical rationale
+
+verification:
+  default:
+    - REQUIRED_TODO
+  before_release:
+    - OPTIONAL_TODO
+
+documentation:
+  navigation: KNOWLEDGE.md
+  memory_guide: MEMORY.md
+  project_state: .ai/project_state.md
+  agent_rules: AGENTS.md
+  ai_rules_dir: .ai

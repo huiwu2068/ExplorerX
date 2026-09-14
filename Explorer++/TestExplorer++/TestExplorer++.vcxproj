@@ -293,6 +293,9 @@
     <ClCompile Include="ConfigRegistryStorageTest.cpp" />
     <ClCompile Include="ConfigStorageTestHelper.cpp" />
     <ClCompile Include="ConfigXmlStorageTest.cpp" />
+	<ClCompile Include="EverythingQueryBuilderTest.cpp" />
+	<ClCompile Include="EverythingIpcClientTest.cpp" />
+	<ClCompile Include="EverythingSearchControllerTest.cpp" />
     <ClCompile Include="ControlsTest.cpp" />
     <ClCompile Include="CustomFontStorageTest.cpp" />
     <ClCompile Include="ShellBrowserTest.cpp" />

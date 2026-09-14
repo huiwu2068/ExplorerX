@@ -18,13 +18,20 @@ class ResourceLoader;
 class HolderWindow
 {
 public:
+	enum class ResizeEdge
+	{
+		Left,
+		Right
+	};
+
 	using ResizedCallback = std::function<void(int newWidth)>;
 	using CloseButtonClickedCallback = std::function<void()>;
 
 	static HolderWindow *Create(HWND parent, const std::wstring &caption, DWORD style,
 		const std::wstring &closeButtonTooltip, const Config *config,
 		const ResourceLoader *resourceLoader, const DarkModeManager *darkModeManager,
-		const DarkModeColorProvider *darkModeColorProvider);
+		const DarkModeColorProvider *darkModeColorProvider,
+		ResizeEdge resizeEdge = ResizeEdge::Right);
 
 	HWND GetHWND() const;
 	void SetContentChild(HWND contentChild);
@@ -47,7 +54,7 @@ private:
 	HolderWindow(HWND parent, const std::wstring &caption, DWORD style,
 		const std::wstring &closeButtonTooltip, const Config *config,
 		const ResourceLoader *resourceLoader, const DarkModeManager *darkModeManager,
-		const DarkModeColorProvider *darkModeColorProvider);
+		const DarkModeColorProvider *darkModeColorProvider, ResizeEdge resizeEdge);
 	HWND CreateHolderWindow(HWND parent, const std::wstring &caption, DWORD style);
 	static ATOM RegisterHolderWindowClass();
 
@@ -91,6 +98,7 @@ private:
 	wil::unique_himagelist m_toolbarImageList;
 
 	HCURSOR m_sizingCursor;
+	const ResizeEdge m_resizeEdge;
 	bool m_resizing = false;
 	std::optional<int> m_resizeDistanceToEdge;
 	ResizedCallback m_resizedCallback;

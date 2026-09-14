@@ -121,8 +121,16 @@ const wchar_t SETTING_TREEVIEW_WIDTH[] = L"TreeViewWidth";
 const wchar_t SETTING_DISPLAY_WINDOW_WIDTH[] = L"DisplayWindowWidth";
 const wchar_t SETTING_DISPLAY_WINDOW_HEIGHT[] = L"DisplayWindowHeight";
 const wchar_t SETTING_MAIN_TOOLBAR_BUTTONS[] = L"MainToolbarButtons";
+const wchar_t SETTING_PANE_LAYOUT_VERSION[] = L"PaneLayoutVersion";
+const wchar_t SETTING_DUAL_PANE[] = L"DualPane";
+const wchar_t SETTING_ACTIVE_PANE[] = L"ActivePane";
+const wchar_t SETTING_DUAL_PANE_SPLIT_RATIO[] = L"DualPaneSplitRatio";
+const wchar_t SETTING_RIGHT_PANE_SELECTED_TAB[] = L"RightPaneSelectedTab";
+const wchar_t SETTING_EVERYTHING_PANE_VISIBLE[] = L"EverythingSearchPaneVisible";
+const wchar_t SETTING_EVERYTHING_PANE_WIDTH[] = L"EverythingSearchPaneWidth";
 
 const wchar_t TABS_SUB_KEY_PATH[] = L"Tabs";
+const wchar_t RIGHT_PANE_TABS_SUB_KEY_PATH[] = L"RightPaneTabs";
 const wchar_t MAIN_REBAR_SUB_KEY_PATH[] = L"Toolbars";
 
 std::optional<WindowStorageData> LoadWindow(HKEY applicationKey, HKEY windowKey, bool fallback)
@@ -224,6 +232,39 @@ std::optional<WindowStorageData> LoadWindow(HKEY applicationKey, HKEY windowKey,
 			V1::SETTING_DISPLAY_WINDOW_HEIGHT, displayWindowHeight);
 	}
 
+	int paneLayoutVersion = 0;
+	RegistrySettings::Read32BitValueFromRegistry(windowKey, SETTING_PANE_LAYOUT_VERSION,
+		paneLayoutVersion);
+	bool dualPane = false;
+	RegistrySettings::Read32BitValueFromRegistry(windowKey, SETTING_DUAL_PANE, dualPane);
+	int activePaneValue = static_cast<int>(BrowserPaneId::Left);
+	RegistrySettings::Read32BitValueFromRegistry(windowKey, SETTING_ACTIVE_PANE, activePaneValue);
+	const BrowserPaneId activePane = activePaneValue == static_cast<int>(BrowserPaneId::Right)
+		? BrowserPaneId::Right
+		: BrowserPaneId::Left;
+	int dualPaneSplitRatio = 5000;
+	RegistrySettings::Read32BitValueFromRegistry(windowKey, SETTING_DUAL_PANE_SPLIT_RATIO,
+		dualPaneSplitRatio);
+	dualPaneSplitRatio = std::clamp(dualPaneSplitRatio, 2000, 8000);
+	int rightPaneSelectedTab = 0;
+	RegistrySettings::Read32BitValueFromRegistry(windowKey, SETTING_RIGHT_PANE_SELECTED_TAB,
+		rightPaneSelectedTab);
+	bool everythingSearchPaneVisible = false;
+	RegistrySettings::Read32BitValueFromRegistry(windowKey, SETTING_EVERYTHING_PANE_VISIBLE,
+		everythingSearchPaneVisible);
+	int everythingSearchPaneWidth = 420;
+	RegistrySettings::Read32BitValueFromRegistry(windowKey, SETTING_EVERYTHING_PANE_WIDTH,
+		everythingSearchPaneWidth);
+	everythingSearchPaneWidth = std::max(everythingSearchPaneWidth, 260);
+
+	std::vector<TabStorageData> rightPaneTabs;
+	if (wil::unique_hkey rightPaneTabsKey;
+		SUCCEEDED(wil::reg::open_unique_key_nothrow(windowKey, RIGHT_PANE_TABS_SUB_KEY_PATH,
+			rightPaneTabsKey, wil::reg::key_access::read)))
+	{
+		rightPaneTabs = TabRegistryStorage::Load(rightPaneTabsKey.get());
+	}
+
 	std::vector<RebarBandStorageInfo> mainRebarInfo;
 
 	if (wil::unique_hkey mainRebarKey; SUCCEEDED(wil::reg::open_unique_key_nothrow(windowKey,
@@ -253,7 +294,15 @@ std::optional<WindowStorageData> LoadWindow(HKEY applicationKey, HKEY windowKey,
 		.mainToolbarButtons = mainToolbarButtons,
 		.treeViewWidth = treeViewWidth,
 		.displayWindowWidth = displayWindowWidth,
-		.displayWindowHeight = displayWindowHeight };
+		.displayWindowHeight = displayWindowHeight,
+		.paneLayoutVersion = paneLayoutVersion,
+		.dualPane = dualPane,
+		.activePane = activePane,
+		.dualPaneSplitRatio = dualPaneSplitRatio,
+		.rightPaneTabs = std::move(rightPaneTabs),
+		.rightPaneSelectedTab = rightPaneSelectedTab,
+		.everythingSearchPaneVisible = everythingSearchPaneVisible,
+		.everythingSearchPaneWidth = everythingSearchPaneWidth };
 }
 
 std::vector<WindowStorageData> Load(HKEY applicationKey, HKEY windowsKey)
@@ -297,6 +346,17 @@ void SaveWindow(HKEY windowKey, const WindowStorageData &window)
 	RegistrySettings::SaveDword(windowKey, SETTING_DISPLAY_WINDOW_WIDTH, window.displayWindowWidth);
 	RegistrySettings::SaveDword(windowKey, SETTING_DISPLAY_WINDOW_HEIGHT,
 		window.displayWindowHeight);
+	RegistrySettings::SaveDword(windowKey, SETTING_PANE_LAYOUT_VERSION, window.paneLayoutVersion);
+	RegistrySettings::SaveDword(windowKey, SETTING_DUAL_PANE, window.dualPane);
+	RegistrySettings::SaveDword(windowKey, SETTING_ACTIVE_PANE, static_cast<int>(window.activePane));
+	RegistrySettings::SaveDword(windowKey, SETTING_DUAL_PANE_SPLIT_RATIO,
+		window.dualPaneSplitRatio);
+	RegistrySettings::SaveDword(windowKey, SETTING_RIGHT_PANE_SELECTED_TAB,
+		window.rightPaneSelectedTab);
+	RegistrySettings::SaveDword(windowKey, SETTING_EVERYTHING_PANE_VISIBLE,
+		window.everythingSearchPaneVisible);
+	RegistrySettings::SaveDword(windowKey, SETTING_EVERYTHING_PANE_WIDTH,
+		window.everythingSearchPaneWidth);
 
 	wil::unique_hkey tabsKey;
 	HRESULT hr = wil::reg::create_unique_key_nothrow(windowKey, TABS_SUB_KEY_PATH, tabsKey,
@@ -305,6 +365,14 @@ void SaveWindow(HKEY windowKey, const WindowStorageData &window)
 	if (SUCCEEDED(hr))
 	{
 		TabRegistryStorage::Save(tabsKey.get(), window.tabs);
+	}
+
+	wil::unique_hkey rightPaneTabsKey;
+	hr = wil::reg::create_unique_key_nothrow(windowKey, RIGHT_PANE_TABS_SUB_KEY_PATH,
+		rightPaneTabsKey, wil::reg::key_access::readwrite);
+	if (SUCCEEDED(hr))
+	{
+		TabRegistryStorage::Save(rightPaneTabsKey.get(), window.rightPaneTabs);
 	}
 
 	wil::unique_hkey mainRebarKey;

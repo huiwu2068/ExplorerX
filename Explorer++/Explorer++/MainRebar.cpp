@@ -55,6 +55,12 @@ std::vector<RebarView::Band> Explorerplusplus::InitializeMainRebarBands(
 	m_rebarConnections.push_back(m_config->showMainToolbar.addObserver(
 		std::bind_front(&RebarView::ShowBand, m_mainRebarView, m_mainToolbar->GetHWND())));
 
+	CreateEverythingSearchBar();
+	band = InitializeNonToolbarBand(REBAR_BAND_ID_EVERYTHING_SEARCH, m_everythingSearchBar, true);
+	band.newLine = false;
+	band.length = 340;
+	mainRebarBands.push_back(band);
+
 	CreateAddressBar();
 	band = InitializeNonToolbarBand(REBAR_BAND_ID_ADDRESS_BAR, m_addressBar->GetView()->GetHWND(),
 		m_config->showAddressBar.get());
@@ -269,6 +275,127 @@ void Explorerplusplus::CreateMainToolbar(
 		m_appServices, this, &m_shellIconLoader);
 	m_mainToolbar->sizeUpdatedSignal.AddObserver(
 		std::bind(&Explorerplusplus::OnRebarToolbarSizeUpdated, this, m_mainToolbar->GetHWND()));
+}
+
+void Explorerplusplus::CreateEverythingSearchBar()
+{
+	m_everythingSearchBar = CreateWindow(WC_STATIC, L"", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
+		0, 0, 340, 28, m_mainRebarView->GetHWND(), nullptr, GetModuleHandle(nullptr), nullptr);
+	m_windowSubclasses.push_back(std::make_unique<WindowSubclass>(m_everythingSearchBar,
+		[this](HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+		{
+			if (msg == WM_COMMAND || msg == WM_NOTIFY)
+			{
+				SendMessage(m_hwnd, msg, wParam, lParam);
+				return static_cast<LRESULT>(0);
+			}
+			return DefSubclassProc(hwnd, msg, wParam, lParam);
+		}));
+	m_everythingSearchEdit = CreateWindowEx(WS_EX_CLIENTEDGE, WC_EDIT, L"", WS_CHILD | WS_VISIBLE
+		| WS_TABSTOP | ES_AUTOHSCROLL, 0, 2, 230, 24, m_everythingSearchBar,
+		reinterpret_cast<HMENU>(static_cast<INT_PTR>(EVERYTHING_SEARCH_EDIT_ID)),
+		GetModuleHandle(nullptr), nullptr);
+	SendMessage(m_everythingSearchEdit, EM_SETCUEBANNER, TRUE,
+		reinterpret_cast<LPARAM>(L"Everything 搜索"));
+	m_everythingSearchButton = CreateWindow(WC_BUTTON, L"Search", WS_CHILD | WS_VISIBLE | WS_TABSTOP
+		| BS_SPLITBUTTON, 234, 2, 70, 24,
+		m_everythingSearchBar,
+		reinterpret_cast<HMENU>(static_cast<INT_PTR>(EVERYTHING_SEARCH_BUTTON_ID)),
+		GetModuleHandle(nullptr), nullptr);
+	CreateWindow(WC_BUTTON, L"X", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 307, 2, 28, 24,
+		m_everythingSearchBar,
+		reinterpret_cast<HMENU>(static_cast<INT_PTR>(EVERYTHING_SEARCH_CLEAR_BUTTON_ID)),
+		GetModuleHandle(nullptr), nullptr);
+	m_windowSubclasses.push_back(std::make_unique<WindowSubclass>(m_everythingSearchEdit,
+		[this](HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+		{
+			if (msg == WM_KEYDOWN && wParam == VK_RETURN)
+			{
+				SubmitEverythingSearch();
+				return static_cast<LRESULT>(0);
+			}
+			if (msg == WM_SYSKEYDOWN && wParam == VK_DOWN)
+			{
+				ShowEverythingSearchMenu();
+				return static_cast<LRESULT>(0);
+			}
+			if (msg == WM_KEYDOWN && wParam == VK_ESCAPE)
+			{
+				if (GetWindowTextLength(hwnd) > 0)
+				{
+					SetWindowText(hwnd, L"");
+				}
+				else
+				{
+					SetFocus(m_hActiveListView);
+				}
+				return static_cast<LRESULT>(0);
+			}
+			return DefSubclassProc(hwnd, msg, wParam, lParam);
+		}));
+	const HFONT systemFont = static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT));
+	SendMessage(m_everythingSearchEdit, WM_SETFONT, reinterpret_cast<WPARAM>(systemFont), TRUE);
+	SendMessage(m_everythingSearchButton, WM_SETFONT, reinterpret_cast<WPARAM>(systemFont), TRUE);
+}
+
+void Explorerplusplus::ShowEverythingSearchMenu()
+{
+	HMENU menu = CreatePopupMenu();
+	const auto &settings = m_config->everythingSearchSettings;
+	AppendMenu(menu, MF_STRING | (settings.scope == EverythingSearchScope::CurrentFolder
+			? MF_CHECKED
+			: MF_UNCHECKED), EVERYTHING_SEARCH_SCOPE_CURRENT_ID,
+		L"当前文件夹下 Everything 查找");
+	AppendMenu(menu, MF_STRING | (settings.scope == EverythingSearchScope::Global ? MF_CHECKED
+		: MF_UNCHECKED), EVERYTHING_SEARCH_SCOPE_GLOBAL_ID, L"全局 Everything 查找");
+	CheckMenuRadioItem(menu, EVERYTHING_SEARCH_SCOPE_CURRENT_ID, EVERYTHING_SEARCH_SCOPE_GLOBAL_ID,
+		settings.scope == EverythingSearchScope::CurrentFolder ? EVERYTHING_SEARCH_SCOPE_CURRENT_ID
+			: EVERYTHING_SEARCH_SCOPE_GLOBAL_ID,
+		MF_BYCOMMAND);
+	AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
+	auto appendOption = [menu](UINT id, const wchar_t *text, bool enabled)
+	{
+		AppendMenu(menu, MF_STRING | (enabled ? MF_CHECKED : MF_UNCHECKED), id, text);
+	};
+	appendOption(EVERYTHING_SEARCH_MATCH_CASE_ID, L"区分大小写 (&A)", settings.matchCase);
+	appendOption(EVERYTHING_SEARCH_MATCH_WHOLE_WORD_ID, L"全词匹配 (&B)",
+		settings.matchWholeWord);
+	appendOption(EVERYTHING_SEARCH_REGEX_ID, L"正则表达式 (&C)", settings.regularExpression);
+	appendOption(EVERYTHING_SEARCH_IGNORE_DIACRITICS_ID, L"忽略变音标记 (&D)",
+		settings.ignoreDiacritics);
+	appendOption(EVERYTHING_SEARCH_MATCH_PATH_ID, L"匹配路径 (&F)", settings.matchPath);
+
+	RECT buttonRect;
+	GetWindowRect(m_everythingSearchButton, &buttonRect);
+	const UINT selected = TrackPopupMenu(menu, TPM_RETURNCMD | TPM_LEFTALIGN | TPM_TOPALIGN,
+		buttonRect.left, buttonRect.bottom, 0, m_hwnd, nullptr);
+	DestroyMenu(menu);
+
+	auto &updatedSettings = m_config->everythingSearchSettings;
+	switch (selected)
+	{
+	case EVERYTHING_SEARCH_SCOPE_CURRENT_ID:
+		updatedSettings.scope = EverythingSearchScope::CurrentFolder;
+		break;
+	case EVERYTHING_SEARCH_SCOPE_GLOBAL_ID:
+		updatedSettings.scope = EverythingSearchScope::Global;
+		break;
+	case EVERYTHING_SEARCH_MATCH_CASE_ID:
+		updatedSettings.matchCase = !updatedSettings.matchCase;
+		break;
+	case EVERYTHING_SEARCH_MATCH_WHOLE_WORD_ID:
+		updatedSettings.matchWholeWord = !updatedSettings.matchWholeWord;
+		break;
+	case EVERYTHING_SEARCH_REGEX_ID:
+		updatedSettings.regularExpression = !updatedSettings.regularExpression;
+		break;
+	case EVERYTHING_SEARCH_IGNORE_DIACRITICS_ID:
+		updatedSettings.ignoreDiacritics = !updatedSettings.ignoreDiacritics;
+		break;
+	case EVERYTHING_SEARCH_MATCH_PATH_ID:
+		updatedSettings.matchPath = !updatedSettings.matchPath;
+		break;
+	}
 }
 
 void Explorerplusplus::CreateBookmarksToolbar()

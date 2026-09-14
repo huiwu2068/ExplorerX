@@ -21,20 +21,21 @@
 HolderWindow *HolderWindow::Create(HWND parent, const std::wstring &caption, DWORD style,
 	const std::wstring &closeButtonTooltip, const Config *config,
 	const ResourceLoader *resourceLoader, const DarkModeManager *darkModeManager,
-	const DarkModeColorProvider *darkModeColorProvider)
+	const DarkModeColorProvider *darkModeColorProvider, ResizeEdge resizeEdge)
 {
 	return new HolderWindow(parent, caption, style, closeButtonTooltip, config, resourceLoader,
-		darkModeManager, darkModeColorProvider);
+		darkModeManager, darkModeColorProvider, resizeEdge);
 }
 
 HolderWindow::HolderWindow(HWND parent, const std::wstring &caption, DWORD style,
 	const std::wstring &closeButtonTooltip, const Config *config,
 	const ResourceLoader *resourceLoader, const DarkModeManager *darkModeManager,
-	const DarkModeColorProvider *darkModeColorProvider) :
+	const DarkModeColorProvider *darkModeColorProvider, ResizeEdge resizeEdge) :
 	m_hwnd(CreateHolderWindow(parent, caption, style)),
 	m_darkModeManager(darkModeManager),
 	m_darkModeColorProvider(darkModeColorProvider),
-	m_sizingCursor(LoadCursor(nullptr, IDC_SIZEWE))
+	m_sizingCursor(LoadCursor(nullptr, IDC_SIZEWE)),
+	m_resizeEdge(resizeEdge)
 {
 	LOGFONT systemFont = GetDefaultSystemFontScaledToWindow(m_hwnd);
 	m_defaultFont.reset(CreateFontIndirect(&systemFont));
@@ -335,7 +336,7 @@ void HolderWindow::OnLButtonDown(const POINT &pt)
 
 		RECT clientRect;
 		GetClientRect(m_hwnd, &clientRect);
-		m_resizeDistanceToEdge = clientRect.right - pt.x;
+		m_resizeDistanceToEdge = m_resizeEdge == ResizeEdge::Right ? clientRect.right - pt.x : pt.x;
 
 		SetCapture(m_hwnd);
 	}
@@ -356,7 +357,10 @@ int HolderWindow::OnMouseMove(const POINT &pt)
 		RECT clientRect;
 		GetClientRect(m_hwnd, &clientRect);
 
-		int newWidth = std::max(pt.x + m_resizeDistanceToEdge.value(), 0L);
+		const int currentWidth = GetRectWidth(&clientRect);
+		int newWidth = m_resizeEdge == ResizeEdge::Right
+			? std::max(pt.x + m_resizeDistanceToEdge.value(), 0L)
+			: std::max(currentWidth - pt.x + m_resizeDistanceToEdge.value(), 0L);
 
 		if (m_resizedCallback)
 		{
@@ -396,10 +400,9 @@ bool HolderWindow::IsCursorInResizeStartRange(const POINT &ptCursor)
 	RECT clientRect;
 	GetClientRect(m_hwnd, &clientRect);
 
-	InflateRect(&clientRect,
-		-DpiCompatibility::GetInstance().ScaleValue(m_hwnd, RESIZE_START_RANGE), 0);
-
-	return ptCursor.x >= clientRect.right;
+	const int range = DpiCompatibility::GetInstance().ScaleValue(m_hwnd, RESIZE_START_RANGE);
+	return m_resizeEdge == ResizeEdge::Right ? ptCursor.x >= clientRect.right - range
+		: ptCursor.x <= clientRect.left + range;
 }
 
 HWND HolderWindow::GetHWND() const

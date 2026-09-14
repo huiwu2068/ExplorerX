@@ -15,6 +15,14 @@ Config BuildReference()
 	config.language = MAKELANGID(LANG_FRENCH, SUBLANG_FRENCH);
 	config.defaultTabDirectory = L"C:\\";
 	config.alwaysOpenNewTab = true;
+	config.dualPane = true;
+	config.dualPaneSplitRatio = 6300;
+	config.everythingSearchSettings.scope = EverythingSearchScope::Global;
+	config.everythingSearchSettings.matchCase = true;
+	config.everythingSearchSettings.matchWholeWord = true;
+	config.everythingSearchSettings.regularExpression = true;
+	config.everythingSearchSettings.ignoreDiacritics = false;
+	config.everythingSearchSettings.matchPath = true;
 	config.infoTipType = InfoTipType::Custom;
 	config.displayWindowCentreColor = RGB(255, 0, 0);
 	config.displayWindowSurroundColor = RGB(0, 255, 0);

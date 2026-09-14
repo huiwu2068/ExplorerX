@@ -1414,6 +1414,8 @@
     <ClCompile Include="DrivesToolbar.cpp" />
     <ClCompile Include="Plugins\Event.cpp" />
     <ClCompile Include="EventSwitcher.cpp" />
+	<ClCompile Include="EverythingIpcClient.cpp" />
+	<ClCompile Include="EverythingSearchController.cpp" />
     <ClCompile Include="Explorer++.cpp" />
     <ClCompile Include="FileSelectionTests.cpp" />
     <ClCompile Include="FilterDialog.cpp" />
@@ -1561,6 +1563,7 @@
     <ClInclude Include="ComStaThreadPoolExecutor.h" />
     <ClInclude Include="ConfigRegistryStorage.h" />
     <ClInclude Include="ConfigXmlStorage.h" />
+	<ClInclude Include="EverythingQueryBuilder.h" />
     <ClInclude Include="DarkModeColorProvider.h" />
     <ClInclude Include="DarkModeManager.h" />
     <ClInclude Include="DialogHelper.h" />
@@ -1645,6 +1648,8 @@
     <ClInclude Include="DisplayWindowDefaults.h" />
     <ClInclude Include="EventScope.h" />
     <ClInclude Include="EventWindow.h" />
+	<ClInclude Include="EverythingIpcClient.h" />
+	<ClInclude Include="EverythingSearchController.h" />
     <ClInclude Include="ExitCode.h" />
     <ClInclude Include="Feature.h" />
     <ClInclude Include="FeatureList.h" />

@@ -37,6 +37,7 @@ const ToolbarButtonMapping::value_type g_xmlButtonMappingValues[] = {
 	{ MainToolbarButton::AddBookmark, L"Bookmark the current tab" },
 	{ MainToolbarButton::NewTab, L"Create a new tab" },
 	{ MainToolbarButton::OpenCommandPrompt, L"Open Command Prompt" },
+	{ MainToolbarButton::WindowsTerminal, L"Open Windows Terminal" },
 	{ MainToolbarButton::Bookmarks, L"Organize Bookmarks" },
 	{ MainToolbarButton::DeletePermanently, L"Delete Permanently" },
 	{ MainToolbarButton::SplitFile, L"Split File" },

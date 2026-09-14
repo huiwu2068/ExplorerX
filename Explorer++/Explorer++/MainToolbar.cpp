@@ -60,6 +60,8 @@ constexpr auto BUTTON_ICON_MAPPINGS = std::to_array<ButtonIconMapping>({
 	{ MainToolbarButton::AddBookmark, Icon::AddBookmark },
 	{ MainToolbarButton::NewTab, Icon::NewTab },
 	{ MainToolbarButton::OpenCommandPrompt, Icon::CommandLine },
+	// Use a tiled terminal-style glyph so this entry is visually distinct from Command Prompt.
+	{ MainToolbarButton::WindowsTerminal, Icon::Views },
 	{ MainToolbarButton::Bookmarks, Icon::Bookmarks },
 	{ MainToolbarButton::DeletePermanently, Icon::DeletePermanently },
 	{ MainToolbarButton::SplitFile, Icon::SplitFiles },
@@ -456,6 +458,9 @@ int MainToolbar::LookupToolbarButtonTextID(MainToolbarButton button) const
 	case MainToolbarButton::OpenCommandPrompt:
 		return IDS_TOOLBAR_OPENCOMMANDPROMPT;
 
+	case MainToolbarButton::WindowsTerminal:
+		return IDS_TOOLBAR_OPENWINDOWSTERMINAL;
+
 	case MainToolbarButton::SplitFile:
 		return IDS_TOOLBAR_SPLIT_FILE;
 
@@ -800,6 +805,8 @@ void MainToolbar::UpdateToolbarButtonStates()
 		browserController->IsCommandEnabled(IDM_ACTIONS_MERGEFILES));
 	SendMessage(m_hwnd, TB_ENABLEBUTTON, MainToolbarButton::OpenCommandPrompt,
 		browserController->IsCommandEnabled(IDM_FILE_OPENCOMMANDPROMPT));
+	SendMessage(m_hwnd, TB_ENABLEBUTTON, MainToolbarButton::WindowsTerminal,
+		browserController->IsCommandEnabled(IDM_FILE_OPENWINDOWSTERMINAL));
 	SendMessage(m_hwnd, TB_ENABLEBUTTON, MainToolbarButton::NewFolder,
 		browserController->IsCommandEnabled(IDM_ACTIONS_NEWFOLDER));
 }

@@ -220,8 +220,16 @@ const wchar_t SETTING_SELECTED_TAB[] = L"SelectedTab";
 const wchar_t SETTING_TREEVIEW_WIDTH[] = L"TreeViewWidth";
 const wchar_t SETTING_DISPLAY_WINDOW_WIDTH[] = L"DisplayWindowWidth";
 const wchar_t SETTING_DISPLAY_WINDOW_HEIGHT[] = L"DisplayWindowHeight";
+const wchar_t SETTING_PANE_LAYOUT_VERSION[] = L"PaneLayoutVersion";
+const wchar_t SETTING_DUAL_PANE[] = L"DualPane";
+const wchar_t SETTING_ACTIVE_PANE[] = L"ActivePane";
+const wchar_t SETTING_DUAL_PANE_SPLIT_RATIO[] = L"DualPaneSplitRatio";
+const wchar_t SETTING_RIGHT_PANE_SELECTED_TAB[] = L"RightPaneSelectedTab";
+const wchar_t SETTING_EVERYTHING_PANE_VISIBLE[] = L"EverythingSearchPaneVisible";
+const wchar_t SETTING_EVERYTHING_PANE_WIDTH[] = L"EverythingSearchPaneWidth";
 
 const wchar_t TABS_NODE_NAME[] = L"Tabs";
+const wchar_t RIGHT_PANE_TABS_NODE_NAME[] = L"RightPaneTabs";
 const wchar_t MAIN_REBAR_NODE_NAME[] = L"Toolbars";
 const wchar_t MAIN_TOOLBAR_NODE_NAME[] = L"MainToolbarButtons";
 
@@ -328,6 +336,38 @@ std::optional<WindowStorageData> LoadWindow(IXMLDOMNode *rootNode, IXMLDOMNode *
 		GetIntSetting(settingsNode.get(), V1::SETTING_DISPLAY_WINDOW_HEIGHT, displayWindowHeight);
 	}
 
+	int paneLayoutVersion = 0;
+	XMLSettings::GetIntFromMap(attributeMap.get(), SETTING_PANE_LAYOUT_VERSION, paneLayoutVersion);
+	int dualPaneValue = 0;
+	XMLSettings::GetIntFromMap(attributeMap.get(), SETTING_DUAL_PANE, dualPaneValue);
+	int activePaneValue = static_cast<int>(BrowserPaneId::Left);
+	XMLSettings::GetIntFromMap(attributeMap.get(), SETTING_ACTIVE_PANE, activePaneValue);
+	const BrowserPaneId activePane = activePaneValue == static_cast<int>(BrowserPaneId::Right)
+		? BrowserPaneId::Right
+		: BrowserPaneId::Left;
+	int dualPaneSplitRatio = 5000;
+	XMLSettings::GetIntFromMap(attributeMap.get(), SETTING_DUAL_PANE_SPLIT_RATIO,
+		dualPaneSplitRatio);
+	dualPaneSplitRatio = std::clamp(dualPaneSplitRatio, 2000, 8000);
+	int rightPaneSelectedTab = 0;
+	XMLSettings::GetIntFromMap(attributeMap.get(), SETTING_RIGHT_PANE_SELECTED_TAB,
+		rightPaneSelectedTab);
+	int everythingSearchPaneVisibleValue = 0;
+	XMLSettings::GetIntFromMap(attributeMap.get(), SETTING_EVERYTHING_PANE_VISIBLE,
+		everythingSearchPaneVisibleValue);
+	int everythingSearchPaneWidth = 420;
+	XMLSettings::GetIntFromMap(attributeMap.get(), SETTING_EVERYTHING_PANE_WIDTH,
+		everythingSearchPaneWidth);
+	everythingSearchPaneWidth = std::max(everythingSearchPaneWidth, 260);
+
+	std::vector<TabStorageData> rightPaneTabs;
+	wil::com_ptr_nothrow<IXMLDOMNode> rightPaneTabsNode;
+	query = wil::make_bstr_nothrow(RIGHT_PANE_TABS_NODE_NAME);
+	if (windowNode->selectSingleNode(query.get(), &rightPaneTabsNode) == S_OK)
+	{
+		rightPaneTabs = TabXmlStorage::Load(rightPaneTabsNode.get());
+	}
+
 	std::vector<RebarBandStorageInfo> mainRebarInfo;
 
 	wil::com_ptr_nothrow<IXMLDOMNode> mainRebarNode;
@@ -366,7 +406,15 @@ std::optional<WindowStorageData> LoadWindow(IXMLDOMNode *rootNode, IXMLDOMNode *
 		.mainToolbarButtons = mainToolbarButtons,
 		.treeViewWidth = treeViewWidth,
 		.displayWindowWidth = displayWindowWidth,
-		.displayWindowHeight = displayWindowHeight };
+		.displayWindowHeight = displayWindowHeight,
+		.paneLayoutVersion = paneLayoutVersion,
+		.dualPane = dualPaneValue != 0,
+		.activePane = activePane,
+		.dualPaneSplitRatio = dualPaneSplitRatio,
+		.rightPaneTabs = std::move(rightPaneTabs),
+		.rightPaneSelectedTab = rightPaneSelectedTab,
+		.everythingSearchPaneVisible = everythingSearchPaneVisibleValue != 0,
+		.everythingSearchPaneWidth = everythingSearchPaneWidth };
 }
 
 std::vector<WindowStorageData> Load(IXMLDOMNode *rootNode, IXMLDOMNode *windowsNode)
@@ -431,6 +479,20 @@ void SaveWindow(IXMLDOMDocument *xmlDocument, IXMLDOMNode *windowsNode,
 		XMLSettings::EncodeIntValue(window.displayWindowWidth));
 	XMLSettings::AddAttributeToNode(xmlDocument, windowNode.get(), SETTING_DISPLAY_WINDOW_HEIGHT,
 		XMLSettings::EncodeIntValue(window.displayWindowHeight));
+	XMLSettings::AddAttributeToNode(xmlDocument, windowNode.get(), SETTING_PANE_LAYOUT_VERSION,
+		XMLSettings::EncodeIntValue(window.paneLayoutVersion));
+	XMLSettings::AddAttributeToNode(xmlDocument, windowNode.get(), SETTING_DUAL_PANE,
+		XMLSettings::EncodeIntValue(window.dualPane));
+	XMLSettings::AddAttributeToNode(xmlDocument, windowNode.get(), SETTING_ACTIVE_PANE,
+		XMLSettings::EncodeIntValue(static_cast<int>(window.activePane)));
+	XMLSettings::AddAttributeToNode(xmlDocument, windowNode.get(), SETTING_DUAL_PANE_SPLIT_RATIO,
+		XMLSettings::EncodeIntValue(window.dualPaneSplitRatio));
+	XMLSettings::AddAttributeToNode(xmlDocument, windowNode.get(), SETTING_RIGHT_PANE_SELECTED_TAB,
+		XMLSettings::EncodeIntValue(window.rightPaneSelectedTab));
+	XMLSettings::AddAttributeToNode(xmlDocument, windowNode.get(), SETTING_EVERYTHING_PANE_VISIBLE,
+		XMLSettings::EncodeIntValue(window.everythingSearchPaneVisible));
+	XMLSettings::AddAttributeToNode(xmlDocument, windowNode.get(), SETTING_EVERYTHING_PANE_WIDTH,
+		XMLSettings::EncodeIntValue(window.everythingSearchPaneWidth));
 
 	wil::com_ptr_nothrow<IXMLDOMElement> tabsNode;
 	auto tabsNodeName = wil::make_bstr_nothrow(TABS_NODE_NAME);
@@ -441,6 +503,15 @@ void SaveWindow(IXMLDOMDocument *xmlDocument, IXMLDOMNode *windowsNode,
 		TabXmlStorage::Save(xmlDocument, tabsNode.get(), window.tabs);
 
 		XMLSettings::AppendChildToParent(tabsNode.get(), windowNode.get());
+	}
+
+	wil::com_ptr_nothrow<IXMLDOMElement> rightPaneTabsNode;
+	auto rightPaneTabsNodeName = wil::make_bstr_nothrow(RIGHT_PANE_TABS_NODE_NAME);
+	hr = xmlDocument->createElement(rightPaneTabsNodeName.get(), &rightPaneTabsNode);
+	if (hr == S_OK)
+	{
+		TabXmlStorage::Save(xmlDocument, rightPaneTabsNode.get(), window.rightPaneTabs);
+		XMLSettings::AppendChildToParent(rightPaneTabsNode.get(), windowNode.get());
 	}
 
 	wil::com_ptr_nothrow<IXMLDOMElement> mainRebarNode;

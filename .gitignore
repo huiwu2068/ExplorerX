@@ -391,6 +391,9 @@ FodyWeavers.xsd
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+# clangd compilation database generated from MSBuild.
+compile_commands.json
 *.code-workspace
 
 # Local History for Visual Studio Code

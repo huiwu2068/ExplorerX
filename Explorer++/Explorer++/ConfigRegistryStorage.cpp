@@ -82,6 +82,25 @@ void LoadFromKey(HKEY settingsKey, Config &config)
 		config.globalFolderSettings.oneClickActivateHoverTime);
 	RegistrySettings::Read32BitValueFromRegistry(settingsKey, L"DoubleClickTabClose",
 		config.doubleClickTabClose);
+	RegistrySettings::Read32BitValueFromRegistry(settingsKey, L"DualPane", config.dualPane);
+	RegistrySettings::Read32BitValueFromRegistry(settingsKey, L"DualPaneSplitRatio",
+		config.dualPaneSplitRatio);
+	config.dualPaneSplitRatio = std::clamp(config.dualPaneSplitRatio, 2000, 8000);
+	bool everythingGlobal = false;
+	RegistrySettings::Read32BitValueFromRegistry(settingsKey, L"EverythingSearchGlobal",
+		everythingGlobal);
+	config.everythingSearchSettings.scope = everythingGlobal ? EverythingSearchScope::Global
+		: EverythingSearchScope::CurrentFolder;
+	RegistrySettings::Read32BitValueFromRegistry(settingsKey, L"EverythingMatchCase",
+		config.everythingSearchSettings.matchCase);
+	RegistrySettings::Read32BitValueFromRegistry(settingsKey, L"EverythingMatchWholeWord",
+		config.everythingSearchSettings.matchWholeWord);
+	RegistrySettings::Read32BitValueFromRegistry(settingsKey, L"EverythingRegex",
+		config.everythingSearchSettings.regularExpression);
+	RegistrySettings::Read32BitValueFromRegistry(settingsKey, L"EverythingIgnoreDiacritics",
+		config.everythingSearchSettings.ignoreDiacritics);
+	RegistrySettings::Read32BitValueFromRegistry(settingsKey, L"EverythingMatchPath",
+		config.everythingSearchSettings.matchPath);
 
 	auto res = RegistrySettings::Read32BitValueFromRegistry(settingsKey, L"OpenContainerFiles",
 		config.openContainerFiles);
@@ -273,6 +292,20 @@ void SaveToKey(HKEY settingsKey, const Config &config)
 	RegistrySettings::SaveDword(settingsKey, L"OneClickActivateHoverTime",
 		config.globalFolderSettings.oneClickActivateHoverTime.get());
 	RegistrySettings::SaveDword(settingsKey, L"DoubleClickTabClose", config.doubleClickTabClose);
+	RegistrySettings::SaveDword(settingsKey, L"DualPane", config.dualPane);
+	RegistrySettings::SaveDword(settingsKey, L"DualPaneSplitRatio", config.dualPaneSplitRatio);
+	RegistrySettings::SaveDword(settingsKey, L"EverythingSearchGlobal",
+		config.everythingSearchSettings.scope == EverythingSearchScope::Global);
+	RegistrySettings::SaveDword(settingsKey, L"EverythingMatchCase",
+		config.everythingSearchSettings.matchCase);
+	RegistrySettings::SaveDword(settingsKey, L"EverythingMatchWholeWord",
+		config.everythingSearchSettings.matchWholeWord);
+	RegistrySettings::SaveDword(settingsKey, L"EverythingRegex",
+		config.everythingSearchSettings.regularExpression);
+	RegistrySettings::SaveDword(settingsKey, L"EverythingIgnoreDiacritics",
+		config.everythingSearchSettings.ignoreDiacritics);
+	RegistrySettings::SaveDword(settingsKey, L"EverythingMatchPath",
+		config.everythingSearchSettings.matchPath);
 	RegistrySettings::SaveDword(settingsKey, L"OpenContainerFiles", config.openContainerFiles);
 	RegistrySettings::SaveDword(settingsKey, L"InsertSorted",
 		config.globalFolderSettings.insertSorted);

@@ -11,6 +11,7 @@
 #include "BrowserView.h"
 #include "Config.h"
 #include "DisplayWindow/DisplayWindow.h"
+#include "FeatureList.h"
 #include "HolderWindow.h"
 #include "MainMenuSubMenuView.h"
 #include "MainRebarStorage.h"
@@ -72,6 +73,16 @@ Explorerplusplus::Explorerplusplus(AppServices *appServices, HINSTANCE resourceI
 		m_treeViewWidth = storageData->treeViewWidth;
 		m_displayWindowWidth = storageData->displayWindowWidth;
 		m_displayWindowHeight = storageData->displayWindowHeight;
+		if (storageData->paneLayoutVersion >= 1)
+		{
+			m_config->dualPane = storageData->dualPane;
+			m_config->dualPaneSplitRatio =
+				std::clamp(storageData->dualPaneSplitRatio, 2000, 8000);
+			m_everythingSearchPaneVisible = storageData->everythingSearchPaneVisible;
+			m_everythingSearchPaneWidth = std::max(storageData->everythingSearchPaneWidth, 260);
+			m_preservedRightPaneTabs = storageData->rightPaneTabs;
+			m_preservedRightPaneSelectedTab = storageData->rightPaneSelectedTab;
+		}
 	}
 
 	SetUpControlVisibilityConfigListeners();
@@ -159,6 +170,11 @@ void Explorerplusplus::SetUpControlVisibilityConfigListeners()
 
 void Explorerplusplus::Initialize(const WindowStorageData *storageData)
 {
+	m_everythingSearchController.SetResultsCallback(
+		std::bind_front(&Explorerplusplus::OnEverythingSearchResults, this));
+	m_everythingSearchController.SetErrorCallback(
+		std::bind_front(&Explorerplusplus::OnEverythingQueryError, this));
+
 	m_bookmarksMainMenu = std::make_unique<BookmarksMainMenu>(this,
 		BookmarkMenuBuilder::MenuIdRange{ MENU_BOOKMARK_START_ID, MENU_BOOKMARK_END_ID },
 		m_appServices, &m_iconFetcher, this);
@@ -176,6 +192,7 @@ void Explorerplusplus::Initialize(const WindowStorageData *storageData)
 	InitializeDisplayWindow();
 	InitializeTabs();
 	CreateFolderControls();
+	CreateEverythingSearchPane();
 
 	/* All child windows MUST be resized before
 	any listview changes take place. If auto arrange
@@ -192,12 +209,18 @@ void Explorerplusplus::Initialize(const WindowStorageData *storageData)
 
 	CreateInitialTabs(storageData);
 
+	if (m_config->dualPane && m_featureList->IsEnabled(Feature::DualPane))
+	{
+		CreateSecondaryPane(storageData);
+	}
+
 	SetFocus(m_hActiveListView);
 
 	m_themeWindowTracker =
 		std::make_unique<ThemeWindowTracker>(m_hwnd, m_appServices->GetThemeManager());
 
 	SetLifecycleState(LifecycleState::Main);
+	UpdateLayout();
 }
 
 void Explorerplusplus::InitializeDisplayWindow()
@@ -254,17 +277,35 @@ WindowStorageData Explorerplusplus::GetStorageData() const
 	BOOL res = GetWindowPlacement(m_hwnd, &placement);
 	CHECK(res);
 
-	const auto *tabContainer = GetActivePane()->GetTabContainer();
-
-	return { .bounds = placement.rcNormalPosition,
+	WindowStorageData data{ .bounds = placement.rcNormalPosition,
 		.showState = NativeShowStateToShowState(placement.showCmd),
-		.tabs = tabContainer->GetStorageData(),
-		.selectedTab = tabContainer->GetSelectedTabIndex(),
+		.tabs = m_browserPane->GetTabContainer()->GetStorageData(),
+		.selectedTab = m_browserPane->GetTabContainer()->GetSelectedTabIndex(),
 		.mainRebarInfo = m_mainRebarView->GetStorageData(),
 		.mainToolbarButtons = m_mainToolbar->GetButtonsForStorage(),
 		.treeViewWidth = m_treeViewWidth,
 		.displayWindowWidth = m_displayWindowWidth,
-		.displayWindowHeight = m_displayWindowHeight };
+		.displayWindowHeight = m_displayWindowHeight,
+		.paneLayoutVersion = 1,
+		.dualPane = m_config->dualPane,
+		.activePane = m_activePane ? m_activePane->GetId() : BrowserPaneId::Left,
+		.dualPaneSplitRatio = m_config->dualPaneSplitRatio,
+		.rightPaneSelectedTab = 0,
+		.everythingSearchPaneVisible = m_everythingSearchPaneVisible,
+		.everythingSearchPaneWidth = m_everythingSearchPaneWidth };
+	if (m_config->dualPane && m_secondaryBrowserPane
+		&& m_secondaryBrowserPane->GetTabContainer()->GetNumTabs() > 0)
+	{
+		data.rightPaneTabs = m_secondaryBrowserPane->GetTabContainer()->GetStorageData();
+		data.rightPaneSelectedTab =
+			m_secondaryBrowserPane->GetTabContainer()->GetSelectedTabIndex();
+	}
+	else if (m_config->dualPane && !m_preservedRightPaneTabs.empty())
+	{
+		data.rightPaneTabs = m_preservedRightPaneTabs;
+		data.rightPaneSelectedTab = m_preservedRightPaneSelectedTab;
+	}
+	return data;
 }
 
 bool Explorerplusplus::IsActive() const
@@ -360,7 +401,7 @@ BrowserCommandController *Explorerplusplus::GetCommandController()
 
 BrowserPane *Explorerplusplus::GetActivePane() const
 {
-	return m_browserPane.get();
+	return m_activePane;
 }
 
 TabContainer *Explorerplusplus::GetActiveTabContainer()
