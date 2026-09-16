@@ -17,6 +17,7 @@ TEST(EverythingQueryBuilderTest, GlobalQueryPreservesUserExpression)
 	ASSERT_TRUE(query);
 	EXPECT_EQ(query->expression, L"foo | !bar");
 	EXPECT_EQ(query->settings, settings);
+	EXPECT_EQ(query->sortMode, EverythingSortMode::DateModifiedDescending);
 }
 
 TEST(EverythingQueryBuilderTest, CurrentFolderAddsEscapedRangeWithoutChangingOptions)

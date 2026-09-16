@@ -411,5 +411,9 @@ compile_commands.json
 
 # Manually added entries
 
+# Local AI working context and internal project documentation.
+.ai/
+doc/
+
 # vcpkg
 vcpkg_installed/

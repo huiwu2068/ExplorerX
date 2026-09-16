@@ -292,9 +292,15 @@ void Explorerplusplus::OnTabSelected(const Tab &tab)
 	m_pActiveShellBrowser = tab.GetShellBrowserImpl();
 
 	UpdateWindowStates(tab);
+	const auto searchState = m_everythingSearchTabs.find(tab.GetId());
+	if (searchState != m_everythingSearchTabs.end())
+	{
+		ListView_SetItemCountEx(m_everythingSearchListView,
+			static_cast<int>(searchState->second.results.size()), LVSICF_NOSCROLL);
+	}
 
 	UpdateLayout();
-	SetFocus(m_everythingSearchTabId && tab.GetId() == *m_everythingSearchTabId
+	SetFocus(searchState != m_everythingSearchTabs.end()
 			? m_everythingSearchListView
 			: m_hActiveListView);
 }
@@ -393,11 +399,7 @@ void Explorerplusplus::SetDualPaneEnabled(bool enabled)
 				PreservedTab preservedTab(*tab, leftTabs->GetNumTabs());
 				Tab &migratedTab = leftTabs->CreateNewTab(preservedTab);
 				migratedTabs.push_back(&migratedTab);
-				if (m_everythingSearchTabId && tab->GetId() == *m_everythingSearchTabId)
-				{
-					m_everythingSearchTabContainer = leftTabs;
-					m_everythingSearchTabId = migratedTab.GetId();
-				}
+				MigrateEverythingSearchTabState(tab->GetId(), migratedTab, leftTabs);
 			}
 			rightTabs->CloseAllTabs();
 			ShowWindow(m_secondaryTabBacking->GetHWND(), SW_HIDE);
@@ -419,6 +421,65 @@ void Explorerplusplus::SetDualPaneEnabled(bool enabled)
 	}
 
 	UpdateLayout();
+}
+
+bool Explorerplusplus::CanMoveTabToOtherPane(const Tab &tab) const
+{
+	if (!m_config->dualPane || !m_secondaryBrowserPane)
+	{
+		return false;
+	}
+
+	const auto *source = tab.GetTabContainer();
+	return source == m_browserPane->GetTabContainer()
+		|| source == m_secondaryBrowserPane->GetTabContainer();
+}
+
+void Explorerplusplus::MoveTabToOtherPane(Tab &tab)
+{
+	if (!CanMoveTabToOtherPane(tab))
+	{
+		return;
+	}
+
+	auto *source = tab.GetTabContainer();
+	BrowserPane *targetPane = source == m_browserPane->GetTabContainer()
+		? m_secondaryBrowserPane.get()
+		: m_browserPane.get();
+	auto *target = targetPane->GetTabContainer();
+	PreservedTab preservedTab(tab, target->GetNumTabs());
+	Tab &migratedTab = target->CreateNewTab(preservedTab);
+	MigrateEverythingSearchTabState(tab.GetId(), migratedTab, target);
+	const auto originalLockState = tab.GetLockState();
+	tab.SetLockState(Tab::LockState::NotLocked);
+	if (!source->CloseTab(tab))
+	{
+		tab.SetLockState(originalLockState);
+		target->CloseTab(migratedTab);
+		return;
+	}
+
+	SetActivePane(targetPane);
+	target->SelectTab(migratedTab);
+	UpdateLayout();
+}
+
+void Explorerplusplus::MigrateEverythingSearchTabState(int oldTabId, Tab &newTab,
+	TabContainer *newContainer)
+{
+	auto state = m_everythingSearchTabs.extract(oldTabId);
+	if (state.empty())
+	{
+		return;
+	}
+
+	state.key() = newTab.GetId();
+	state.mapped().tabContainer = newContainer;
+	m_everythingSearchTabs.insert(std::move(state));
+	if (m_activeEverythingSearchTabId && *m_activeEverythingSearchTabId == oldTabId)
+	{
+		m_activeEverythingSearchTabId = newTab.GetId();
+	}
 }
 
 LRESULT Explorerplusplus::DualPaneSplitterSubclass(HWND hwnd, UINT msg, WPARAM wParam,
@@ -555,11 +616,18 @@ void Explorerplusplus::OnTabPreRemoval(const Tab &tab, int index)
 		tabContainer->CreateNewTabInDefaultDirectory({ .selected = true });
 	}
 
-	if (m_everythingSearchTabId && tab.GetId() == *m_everythingSearchTabId)
+	if (m_everythingSearchTabs.erase(tab.GetId()) > 0)
 	{
-		m_everythingSearchTabId.reset();
-		m_everythingSearchTabContainer = nullptr;
-		ShowWindow(m_everythingSearchListView, SW_HIDE);
+		if (m_activeEverythingSearchTabId && tab.GetId() == *m_activeEverythingSearchTabId)
+		{
+			m_activeEverythingSearchTabId.reset();
+			m_everythingSearchController.CancelPendingRequests();
+			KillTimer(m_hwnd, EVERYTHING_SEARCH_TIMER_ID);
+		}
+		if (!IsEverythingSearchTabSelected())
+		{
+			ShowWindow(m_everythingSearchListView, SW_HIDE);
+		}
 	}
 }
 

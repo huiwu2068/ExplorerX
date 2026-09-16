@@ -63,6 +63,8 @@ public:
 	virtual const TabContainer *GetActiveTabContainer() const = 0;
 	virtual void FocusActiveTab() = 0;
 	virtual Tab *CreateTabFromPreservedTab(const PreservedTab *tab) = 0;
+	virtual bool CanMoveTabToOtherPane(const Tab &) const { return false; }
+	virtual void MoveTabToOtherPane(Tab &) {}
 
 	void OpenDefaultItem();
 	virtual void OpenDefaultItem(OpenFolderDisposition openFolderDisposition) = 0;

@@ -177,13 +177,13 @@ bool EverythingIpcClient::Query(HWND replyWindow, DWORD replyCopyDataMessage,
 	const auto ticket = sequence.nextIssued.fetch_add(1, std::memory_order_relaxed);
 	std::thread(
 		[everythingWindow, replyWindow, ticket, pendingQuery = std::move(pendingQuery)]()
-	{
+		{
 			auto &deliverySequence = GetDeliverySequence();
 			{
 				std::unique_lock lock(deliverySequence.mutex);
 				deliverySequence.condition.wait(lock, [&deliverySequence, ticket]
 					{ return deliverySequence.nextToDeliver == ticket; });
-	}
+			}
 
 			if (IsWindow(everythingWindow) && IsWindow(replyWindow))
 			{
@@ -224,7 +224,7 @@ std::vector<std::byte> EverythingIpcClient::BuildQueryPayload(HWND replyWindow,
 		.offset = offset,
 		.maximumResults = maximumResults,
 		.requestFlags = REQUEST_FULL_PATH_AND_NAME | REQUEST_SIZE | REQUEST_DATE_MODIFIED,
-		.sortType = SORT_NAME_ASCENDING };
+		.sortType = static_cast<DWORD>(query.sortMode) };
 	memcpy(payload.data(), &header, sizeof(header));
 	memcpy(payload.data() + sizeof(header), query.expression.c_str(), searchBytes);
 	return payload;

@@ -34,10 +34,24 @@ enum class EverythingQueryError
 	UnsupportedCurrentFolderRegex
 };
 
+// Values are defined by Everything 1.4's EVERYTHING_IPC_SORT_* QUERY2 contract.
+enum class EverythingSortMode : DWORD
+{
+	NameAscending = 1,
+	NameDescending = 2,
+	PathAscending = 3,
+	PathDescending = 4,
+	SizeAscending = 5,
+	SizeDescending = 6,
+	DateModifiedAscending = 13,
+	DateModifiedDescending = 14
+};
+
 struct EverythingQuery
 {
 	std::wstring expression;
 	EverythingSearchSettings settings;
+	EverythingSortMode sortMode = EverythingSortMode::DateModifiedDescending;
 };
 
 class EverythingQueryBuilder
@@ -45,7 +59,8 @@ class EverythingQueryBuilder
 public:
 	static std::optional<EverythingQuery> Build(std::wstring_view userExpression,
 		const EverythingSearchSettings &settings, const std::optional<std::wstring> &currentFolder,
-		EverythingQueryError *error = nullptr)
+		EverythingQueryError *error = nullptr,
+		EverythingSortMode sortMode = EverythingSortMode::DateModifiedDescending)
 	{
 		if (userExpression.find_first_not_of(L" \t\r\n") == std::wstring_view::npos)
 		{
@@ -56,7 +71,8 @@ public:
 		if (settings.scope == EverythingSearchScope::Global)
 		{
 			return EverythingQuery{ .expression = std::wstring(userExpression),
-				.settings = settings };
+				.settings = settings,
+				.sortMode = sortMode };
 		}
 
 		if (!currentFolder || currentFolder->empty())
@@ -86,7 +102,8 @@ public:
 		// constraint.
 		EverythingQuery query{ .expression = L"\"" + EscapeQuotedTerm(folder) + L"\" <"
 				+ std::wstring(userExpression) + L">",
-			.settings = settings };
+			.settings = settings,
+			.sortMode = sortMode };
 		return query;
 	}
 

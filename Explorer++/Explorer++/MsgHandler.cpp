@@ -77,7 +77,7 @@ std::wstring FormatEverythingModifiedTime(const FILETIME &utcFileTime)
 	wchar_t time[64];
 	if (GetDateFormatEx(LOCALE_NAME_USER_DEFAULT, DATE_SHORTDATE, &localSystemTime, nullptr, date,
 			static_cast<int>(std::size(date)), nullptr)
-		== 0
+			== 0
 		|| GetTimeFormatEx(LOCALE_NAME_USER_DEFAULT, TIME_NOSECONDS, &localSystemTime, nullptr,
 			   time, static_cast<int>(std::size(time)))
 			== 0)
@@ -178,40 +178,49 @@ void Explorerplusplus::CreateEverythingSearchPane()
 		ListView_InsertColumn(m_everythingSearchListView,
 			Header_GetItemCount(ListView_GetHeader(m_everythingSearchListView)), &column);
 	}
+	UpdateEverythingListSortArrow();
 }
 
-void Explorerplusplus::EnsureEverythingSearchTab(const std::wstring &expression)
+int Explorerplusplus::CreateEverythingSearchTab(const std::wstring &expression,
+	const EverythingSearchSettings &settings, const std::optional<std::wstring> &currentFolder)
 {
-	if (m_everythingSearchTabId && m_everythingSearchTabContainer)
-	{
-		if (auto *tab = m_everythingSearchTabContainer->MaybeGetTab(*m_everythingSearchTabId))
-		{
-			tab->SetCustomName(L"Everything - " + expression);
-			m_everythingSearchTabContainer->SelectTab(*tab);
-			return;
-		}
-	}
-
 	auto *tabContainer = GetActivePane()->GetTabContainer();
 	const std::wstring backingDirectory = m_pActiveShellBrowser->InVirtualFolder()
 		? m_config->defaultTabDirectory
 		: m_pActiveShellBrowser->GetDirectoryPath();
 	Tab &tab = tabContainer->CreateNewTab(backingDirectory,
 		{ .name = L"Everything - " + expression, .selected = false });
-	m_everythingSearchTabContainer = tabContainer;
-	m_everythingSearchTabId = tab.GetId();
+	m_everythingSearchTabs.emplace(tab.GetId(),
+		EverythingSearchTabState{ .tabContainer = tabContainer,
+			.expression = expression,
+			.settings = settings,
+			.currentFolder = currentFolder });
 	tabContainer->SelectTab(tab);
+	return tab.GetId();
 }
 
 bool Explorerplusplus::IsEverythingSearchTabSelected() const
 {
-	if (!m_everythingSearchTabId || !m_everythingSearchTabContainer)
+	return GetSelectedEverythingSearchTabState() != nullptr;
+}
+
+Explorerplusplus::EverythingSearchTabState *Explorerplusplus::GetSelectedEverythingSearchTabState()
+{
+	return const_cast<EverythingSearchTabState *>(
+		static_cast<const Explorerplusplus *>(this)->GetSelectedEverythingSearchTabState());
+}
+
+const Explorerplusplus::EverythingSearchTabState *Explorerplusplus::
+	GetSelectedEverythingSearchTabState() const
+{
+	if (!GetActivePane() || GetActivePane()->GetTabContainer()->GetNumTabs() == 0)
 	{
-		return false;
+		return nullptr;
 	}
 
-	auto *tab = m_everythingSearchTabContainer->MaybeGetTab(*m_everythingSearchTabId);
-	return tab && m_everythingSearchTabContainer->IsTabSelected(*tab);
+	const int tabId = GetActivePane()->GetTabContainer()->GetSelectedTab().GetId();
+	const auto state = m_everythingSearchTabs.find(tabId);
+	return state == m_everythingSearchTabs.end() ? nullptr : &state->second;
 }
 
 void Explorerplusplus::UpdateEverythingSearchTabLayout()
@@ -222,7 +231,8 @@ void Explorerplusplus::UpdateEverythingSearchTabLayout()
 		return;
 	}
 
-	auto *tab = m_everythingSearchTabContainer->MaybeGetTab(*m_everythingSearchTabId);
+	auto *state = GetSelectedEverythingSearchTabState();
+	auto *tab = &state->tabContainer->GetSelectedTab();
 	HWND backingListView = tab->GetShellBrowserImpl()->GetListView();
 	RECT rect;
 	GetWindowRect(backingListView, &rect);
@@ -231,6 +241,7 @@ void Explorerplusplus::UpdateEverythingSearchTabLayout()
 		SWP_HIDEWINDOW | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
 	SetWindowPos(m_everythingSearchListView, HWND_TOP, rect.left, rect.top, GetRectWidth(&rect),
 		GetRectHeight(&rect), SWP_SHOWWINDOW);
+	UpdateEverythingListSortArrow();
 }
 
 void Explorerplusplus::OnEverythingSearchResults(const EverythingIpcReply &reply)
@@ -238,37 +249,50 @@ void Explorerplusplus::OnEverythingSearchResults(const EverythingIpcReply &reply
 	LOG(INFO) << "Everything results reached the main-window result callback: offset="
 			  << reply.offset << ", page_items=" << reply.results.size()
 			  << ", total_items=" << reply.totalResults;
+	if (!m_activeEverythingSearchTabId)
+	{
+		return;
+	}
+	auto stateIterator = m_everythingSearchTabs.find(*m_activeEverythingSearchTabId);
+	if (stateIterator == m_everythingSearchTabs.end())
+	{
+		return;
+	}
+	auto &state = stateIterator->second;
 	constexpr size_t MAX_RESULTS = 100000;
 	if (reply.offset == 0)
 	{
 		KillTimer(m_hwnd, EVERYTHING_SEARCH_TIMER_ID);
-		m_everythingSearchTotalResults = reply.totalResults;
-		m_everythingSearchResults.clear();
-		m_everythingSearchResults.resize(std::min<size_t>(reply.totalResults, MAX_RESULTS));
+		state.totalResults = reply.totalResults;
+		state.results.clear();
+		state.results.resize(std::min<size_t>(reply.totalResults, MAX_RESULTS));
 	}
 
-	if (reply.offset < m_everythingSearchResults.size())
+	if (reply.offset < state.results.size())
 	{
-		const size_t count =
-			std::min(reply.results.size(), m_everythingSearchResults.size() - reply.offset);
-		std::copy_n(reply.results.begin(), count, m_everythingSearchResults.begin() + reply.offset);
+		const size_t count = std::min(reply.results.size(), state.results.size() - reply.offset);
+		std::copy_n(reply.results.begin(), count, state.results.begin() + reply.offset);
 	}
-	if (m_everythingSearchTabId && m_everythingSearchTabContainer)
+	if (auto *tab = state.tabContainer->MaybeGetTab(*m_activeEverythingSearchTabId))
 	{
-		if (auto *tab = m_everythingSearchTabContainer->MaybeGetTab(*m_everythingSearchTabId))
-		{
-			tab->SetCustomName(L"Everything (" + std::to_wstring(m_everythingSearchTotalResults)
-				+ (m_everythingSearchTotalResults > MAX_RESULTS ? L"+" : L"") + L")");
-		}
+		tab->SetCustomName(L"Everything (" + std::to_wstring(state.totalResults)
+			+ (state.totalResults > MAX_RESULTS ? L"+" : L"") + L")");
 	}
-	ListView_SetItemCountEx(m_everythingSearchListView,
-		static_cast<int>(m_everythingSearchResults.size()), LVSICF_NOSCROLL);
+	if (GetSelectedEverythingSearchTabState() == &state)
+	{
+		ListView_SetItemCountEx(m_everythingSearchListView, static_cast<int>(state.results.size()),
+			LVSICF_NOSCROLL);
+	}
 	UpdateLayout();
 }
 
 void Explorerplusplus::OnEverythingListCacheHint(const NMLVCACHEHINT *cacheHint)
 {
-	if (!cacheHint || cacheHint->iFrom < 0 || m_everythingSearchResults.empty())
+	const auto *state = GetSelectedEverythingSearchTabState();
+	if (!cacheHint || cacheHint->iFrom < 0 || !state || state->results.empty()
+		|| !m_activeEverythingSearchTabId
+		|| GetActivePane()->GetTabContainer()->GetSelectedTab().GetId()
+			!= *m_activeEverythingSearchTabId)
 	{
 		return;
 	}
@@ -280,6 +304,153 @@ void Explorerplusplus::OnEverythingListCacheHint(const NMLVCACHEHINT *cacheHint)
 	for (DWORD page = firstPage; page <= lastPage; ++page)
 	{
 		m_everythingSearchController.RequestPage(page * PAGE_SIZE);
+	}
+}
+
+void Explorerplusplus::UpdateEverythingListSortArrow()
+{
+	if (!m_everythingSearchListView)
+	{
+		return;
+	}
+
+	const auto *state = GetSelectedEverythingSearchTabState();
+	const EverythingSortMode sortMode =
+		state ? state->sortMode : EverythingSortMode::DateModifiedDescending;
+	int sortedColumn = 3;
+	bool ascending = false;
+	switch (sortMode)
+	{
+	case EverythingSortMode::NameAscending:
+		sortedColumn = 0;
+		ascending = true;
+		break;
+	case EverythingSortMode::NameDescending:
+		sortedColumn = 0;
+		break;
+	case EverythingSortMode::PathAscending:
+		sortedColumn = 1;
+		ascending = true;
+		break;
+	case EverythingSortMode::PathDescending:
+		sortedColumn = 1;
+		break;
+	case EverythingSortMode::SizeAscending:
+		sortedColumn = 2;
+		ascending = true;
+		break;
+	case EverythingSortMode::SizeDescending:
+		sortedColumn = 2;
+		break;
+	case EverythingSortMode::DateModifiedAscending:
+		ascending = true;
+		break;
+	case EverythingSortMode::DateModifiedDescending:
+		break;
+	}
+
+	HWND header = ListView_GetHeader(m_everythingSearchListView);
+	for (int column = 0; column < Header_GetItemCount(header); ++column)
+	{
+		HDITEM item{ .mask = HDI_FORMAT };
+		if (!Header_GetItem(header, column, &item))
+		{
+			continue;
+		}
+		item.fmt &= ~(HDF_SORTUP | HDF_SORTDOWN);
+		if (column == sortedColumn)
+		{
+			item.fmt |= ascending ? HDF_SORTUP : HDF_SORTDOWN;
+		}
+		Header_SetItem(header, column, &item);
+	}
+}
+
+void Explorerplusplus::CancelActiveEverythingSearchRequest()
+{
+	if (m_activeEverythingSearchTabId)
+	{
+		auto previousState = m_everythingSearchTabs.find(*m_activeEverythingSearchTabId);
+		if (previousState != m_everythingSearchTabs.end())
+		{
+			auto &results = previousState->second.results;
+			const auto firstUnloaded = std::find_if(results.begin(), results.end(),
+				[](const EverythingSearchResult &result) { return result.fullPath.empty(); });
+			results.erase(firstUnloaded, results.end());
+			if (auto *tab =
+					previousState->second.tabContainer->MaybeGetTab(*m_activeEverythingSearchTabId))
+			{
+				if (results.empty())
+				{
+					tab->SetCustomName(L"Everything - 已取消");
+				}
+				else if (results.size() < previousState->second.totalResults)
+				{
+					tab->SetCustomName(L"Everything (" + std::to_wstring(results.size()) + L"/"
+						+ std::to_wstring(previousState->second.totalResults) + L")");
+				}
+			}
+		}
+	}
+	KillTimer(m_hwnd, EVERYTHING_SEARCH_TIMER_ID);
+	m_everythingSearchController.CancelPendingRequests();
+}
+
+void Explorerplusplus::OnEverythingListColumnClick(const NMLISTVIEW *listView)
+{
+	auto *state = GetSelectedEverythingSearchTabState();
+	if (!state || !listView || listView->iSubItem < 0 || listView->iSubItem > 3)
+	{
+		return;
+	}
+
+	switch (listView->iSubItem)
+	{
+	case 0:
+		state->sortMode = state->sortMode == EverythingSortMode::NameAscending
+			? EverythingSortMode::NameDescending
+			: EverythingSortMode::NameAscending;
+		break;
+	case 1:
+		state->sortMode = state->sortMode == EverythingSortMode::PathAscending
+			? EverythingSortMode::PathDescending
+			: EverythingSortMode::PathAscending;
+		break;
+	case 2:
+		state->sortMode = state->sortMode == EverythingSortMode::SizeAscending
+			? EverythingSortMode::SizeDescending
+			: EverythingSortMode::SizeAscending;
+		break;
+	case 3:
+		state->sortMode = state->sortMode == EverythingSortMode::DateModifiedAscending
+			? EverythingSortMode::DateModifiedDescending
+			: EverythingSortMode::DateModifiedAscending;
+		break;
+	}
+
+	const int tabId = state->tabContainer->GetSelectedTab().GetId();
+	const auto expression = state->expression;
+	const auto settings = state->settings;
+	const auto currentFolder = state->currentFolder;
+	const auto sortMode = state->sortMode;
+	CancelActiveEverythingSearchRequest();
+	m_activeEverythingSearchTabId = tabId;
+	if (auto *tab = state->tabContainer->MaybeGetTab(tabId))
+	{
+		tab->SetCustomName(L"Everything - 排序中…");
+	}
+	UpdateEverythingListSortArrow();
+	SetTimer(m_hwnd, EVERYTHING_SEARCH_TIMER_ID, EVERYTHING_SEARCH_TIMEOUT, nullptr);
+
+	const auto result =
+		m_everythingSearchController.Submit(m_hwnd, expression, settings, currentFolder, sortMode);
+	if (result != EverythingSearchController::SubmitResult::Submitted)
+	{
+		KillTimer(m_hwnd, EVERYTHING_SEARCH_TIMER_ID);
+	}
+	if (result == EverythingSearchController::SubmitResult::EverythingUnavailable)
+	{
+		ShowEverythingSearchError(L"Everything is not running. Start Everything and try again.");
 	}
 }
 
@@ -303,11 +474,15 @@ void Explorerplusplus::OnEverythingQueryError(EverythingQueryError error)
 
 void Explorerplusplus::ShowEverythingSearchError(const std::wstring &message)
 {
-	if (m_everythingSearchTabId && m_everythingSearchTabContainer)
+	if (m_activeEverythingSearchTabId)
 	{
-		if (auto *tab = m_everythingSearchTabContainer->MaybeGetTab(*m_everythingSearchTabId))
+		auto state = m_everythingSearchTabs.find(*m_activeEverythingSearchTabId);
+		if (state != m_everythingSearchTabs.end())
 		{
-			tab->SetCustomName(L"Everything - " + message);
+			if (auto *tab = state->second.tabContainer->MaybeGetTab(*m_activeEverythingSearchTabId))
+			{
+				tab->SetCustomName(L"Everything - " + message);
+			}
 		}
 	}
 	UpdateLayout();
@@ -319,13 +494,19 @@ void Explorerplusplus::SubmitEverythingSearch()
 	std::wstring expression(static_cast<size_t>(length) + 1, L'\0');
 	GetWindowText(m_everythingSearchEdit, expression.data(), length + 1);
 	expression.resize(length);
+	if (expression.find_first_not_of(L" \t\r\n") == std::wstring::npos)
+	{
+		return;
+	}
 
 	std::optional<std::wstring> currentFolder;
 	if (!m_pActiveShellBrowser->InVirtualFolder())
 	{
 		currentFolder = m_pActiveShellBrowser->GetDirectoryPath();
 	}
-	EnsureEverythingSearchTab(expression);
+	CancelActiveEverythingSearchRequest();
+	m_activeEverythingSearchTabId =
+		CreateEverythingSearchTab(expression, m_config->everythingSearchSettings, currentFolder);
 	LOG(INFO) << "Submitting Everything query from main window: scope="
 			  << (m_config->everythingSearchSettings.scope == EverythingSearchScope::Global
 						 ? "global"
@@ -336,15 +517,19 @@ void Explorerplusplus::SubmitEverythingSearch()
 	// Everything can reply before Submit() returns. Establish the visible pending state and timeout
 	// first, so a fast result callback can clear them without this method overwriting the result
 	// title or starting a stale timeout afterwards.
-	if (m_everythingSearchTabId && m_everythingSearchTabContainer)
+	if (m_activeEverythingSearchTabId)
 	{
-		if (auto *tab = m_everythingSearchTabContainer->MaybeGetTab(*m_everythingSearchTabId))
+		auto state = m_everythingSearchTabs.find(*m_activeEverythingSearchTabId);
+		if (state != m_everythingSearchTabs.end())
 		{
-			tab->SetCustomName(L"Everything - 搜索中…");
+			if (auto *tab = state->second.tabContainer->MaybeGetTab(*m_activeEverythingSearchTabId))
+			{
+				tab->SetCustomName(L"Everything - 搜索中…");
+			}
 		}
 	}
-		SetTimer(m_hwnd, EVERYTHING_SEARCH_TIMER_ID, EVERYTHING_SEARCH_TIMEOUT, nullptr);
-		UpdateLayout();
+	SetTimer(m_hwnd, EVERYTHING_SEARCH_TIMER_ID, EVERYTHING_SEARCH_TIMEOUT, nullptr);
+	UpdateLayout();
 
 	auto result = m_everythingSearchController.Submit(m_hwnd, expression,
 		m_config->everythingSearchSettings, currentFolder);
@@ -360,14 +545,15 @@ void Explorerplusplus::SubmitEverythingSearch()
 
 void Explorerplusplus::OnEverythingListGetDisplayInfo(NMLVDISPINFOW *displayInfo)
 {
+	const auto *state = GetSelectedEverythingSearchTabState();
 	const int item = displayInfo->item.iItem;
-	if (item < 0 || static_cast<size_t>(item) >= m_everythingSearchResults.size()
+	if (!state || item < 0 || static_cast<size_t>(item) >= state->results.size()
 		|| !(displayInfo->item.mask & LVIF_TEXT))
 	{
 		return;
 	}
 
-	const auto &result = m_everythingSearchResults[item];
+	const auto &result = state->results[item];
 	if (result.fullPath.empty())
 	{
 		if (displayInfo->item.iSubItem == 0)
@@ -394,13 +580,14 @@ void Explorerplusplus::OnEverythingListGetDisplayInfo(NMLVDISPINFOW *displayInfo
 
 void Explorerplusplus::ActivateEverythingSearchResult()
 {
+	const auto *state = GetSelectedEverythingSearchTabState();
 	const int item = ListView_GetNextItem(m_everythingSearchListView, -1, LVNI_SELECTED);
-	if (item < 0 || static_cast<size_t>(item) >= m_everythingSearchResults.size())
+	if (!state || item < 0 || static_cast<size_t>(item) >= state->results.size())
 	{
 		return;
 	}
 
-	const auto &result = m_everythingSearchResults[item];
+	const auto &result = state->results[item];
 	unique_pidl_absolute fullPidl;
 	const HRESULT hr = ParseDisplayNameForNavigation(result.fullPath, fullPidl);
 	if (FAILED(hr))
@@ -421,14 +608,15 @@ void Explorerplusplus::ActivateEverythingSearchResult()
 
 void Explorerplusplus::ShowEverythingSearchResultContextMenu()
 {
+	const auto *state = GetSelectedEverythingSearchTabState();
 	const int item = ListView_GetNextItem(m_everythingSearchListView, -1, LVNI_SELECTED);
-	if (item < 0 || static_cast<size_t>(item) >= m_everythingSearchResults.size())
+	if (!state || item < 0 || static_cast<size_t>(item) >= state->results.size())
 	{
 		return;
 	}
 
 	unique_pidl_absolute fullPidl;
-	if (FAILED(ParseDisplayNameForNavigation(m_everythingSearchResults[item].fullPath, fullPidl)))
+	if (FAILED(ParseDisplayNameForNavigation(state->results[item].fullPath, fullPidl)))
 	{
 		return;
 	}
@@ -441,7 +629,8 @@ void Explorerplusplus::ShowEverythingSearchResultContextMenu()
 	}
 
 	ShellItemContextMenu contextMenu(parentPidl.get(), { childPidl.get() }, this);
-	EverythingResultContextMenuDelegate resultDelegate([this]() { ActivateEverythingSearchResult(); });
+	EverythingResultContextMenuDelegate resultDelegate(
+		[this]() { ActivateEverythingSearchResult(); });
 	contextMenu.AddDelegate(&resultDelegate);
 
 	POINT point;
@@ -789,7 +978,7 @@ void Explorerplusplus::UpdateLayout()
 	}
 	else
 	{
-		 tabTop = mainWindowHeight - indentBottom - tabWindowHeight;
+		tabTop = mainWindowHeight - indentBottom - tabWindowHeight;
 	}
 
 	if (m_config->dualPane && m_secondaryBrowserPane)
@@ -814,7 +1003,7 @@ void Explorerplusplus::UpdateLayout()
 		m_dualPaneWorkspaceWidth = paneContentWidth;
 		const int holderTop =
 			(m_config->extendTabControl.get() && !m_config->showTabBarAtBottom.get()) ? indentTop
-			: indentRebar;
+																					  : indentRebar;
 		int holderHeight = mainWindowHeight - indentBottom - holderTop;
 		if (m_config->extendTabControl.get() && m_config->showTabBarAtBottom.get() && m_bShowTabBar)
 		{

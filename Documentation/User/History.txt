@@ -1,6 +1,26 @@
 Explorer++ Version History
 --------------------------
 
+Custom release v1.5.0
+---------------------
+New features:
+- Added an Everything search box to the main toolbar. Searches are submitted
+  with Enter or the Search button and each query opens in a separate tab.
+- Everything result tabs can open files and folders and show the Windows shell
+  context menu.
+- Everything results can be sorted by name, path, size or modified time by
+  clicking a column heading. Modified time descending is the default order.
+- Added optional alternating row colors to Everything results.
+- Added a dual-pane view under View > Dual pane and an action for moving tabs
+  between panes.
+- Added a Windows Terminal toolbar button that opens in the active folder.
+- The default folder view is Details and remains configurable in Options.
+
+Behavior changes:
+- Double-clicking the final tab now replaces it with a default tab instead of
+  closing the entire Explorer++ window.
+- Everything searches no longer run while text is being entered.
+
 Version 1.5.0
 -------------
 New features:

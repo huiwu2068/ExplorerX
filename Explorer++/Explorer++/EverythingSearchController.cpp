@@ -11,7 +11,7 @@ EverythingSearchController::EverythingSearchController(QueryFunction queryFuncti
 	if (!m_queryFunction)
 	{
 		m_queryFunction = [](HWND replyWindow, DWORD replyCopyDataMessage,
-			const EverythingQuery &query, DWORD offset, DWORD maximumResults)
+							  const EverythingQuery &query, DWORD offset, DWORD maximumResults)
 		{
 			return EverythingIpcClient().Query(replyWindow, replyCopyDataMessage, query, offset,
 				maximumResults);
@@ -21,10 +21,11 @@ EverythingSearchController::EverythingSearchController(QueryFunction queryFuncti
 
 EverythingSearchController::SubmitResult EverythingSearchController::Submit(HWND replyWindow,
 	std::wstring_view expression, const EverythingSearchSettings &settings,
-	const std::optional<std::wstring> &currentFolder)
+	const std::optional<std::wstring> &currentFolder, EverythingSortMode sortMode)
 {
 	EverythingQueryError error;
-	auto query = EverythingQueryBuilder::Build(expression, settings, currentFolder, &error);
+	auto query =
+		EverythingQueryBuilder::Build(expression, settings, currentFolder, &error, sortMode);
 	if (!query)
 	{
 		if (m_errorCallback)

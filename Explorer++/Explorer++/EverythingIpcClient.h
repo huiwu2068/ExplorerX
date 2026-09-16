@@ -35,8 +35,6 @@ public:
 	static constexpr DWORD REQUEST_FULL_PATH_AND_NAME = 0x00000004;
 	static constexpr DWORD REQUEST_SIZE = 0x00000010;
 	static constexpr DWORD REQUEST_DATE_MODIFIED = 0x00000040;
-	static constexpr DWORD SORT_NAME_ASCENDING = 1;
-
 	// Uses an ordered background delivery sequence. A false return means that Everything isn't
 	// running; this method never waits for a search result on the UI thread.
 	bool Query(HWND replyWindow, DWORD replyCopyDataMessage, const EverythingQuery &query,

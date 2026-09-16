@@ -59,6 +59,10 @@ void TabContextMenu::BuildMenu(const ResourceLoader *resourceLoader)
 
 	m_menuView->EnableItem(IDM_TAB_CONTEXT_MENU_OPEN_PARENT_IN_NEW_TAB,
 		m_tab->GetShellBrowser()->GetNavigationController()->CanGoUp());
+	m_menuView->AppendItem(IDM_TAB_CONTEXT_MENU_MOVE_TO_OTHER_PANE, L"移至另一面板", {},
+		L"将此标签移动到另一个文件面板");
+	m_menuView->EnableItem(IDM_TAB_CONTEXT_MENU_MOVE_TO_OTHER_PANE,
+		m_tab->GetBrowser()->CanMoveTabToOtherPane(*m_tab));
 
 	m_menuView->AppendSeparator();
 
@@ -126,6 +130,10 @@ void TabContextMenu::OnMenuItemSelected(UINT menuItemId)
 
 	case IDM_TAB_CONTEXT_MENU_OPEN_PARENT_IN_NEW_TAB:
 		OnOpenParentInNewTab();
+		break;
+
+	case IDM_TAB_CONTEXT_MENU_MOVE_TO_OTHER_PANE:
+		m_tab->GetBrowser()->MoveTabToOtherPane(*m_tab);
 		break;
 
 	case IDM_TAB_CONTEXT_MENU_REFRESH:

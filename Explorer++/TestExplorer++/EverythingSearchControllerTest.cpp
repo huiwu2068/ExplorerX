@@ -27,7 +27,7 @@ std::vector<std::byte> BuildEmptyReply(DWORD offset, DWORD totalItems = 1000)
 		.offset = offset,
 		.requestFlags = EverythingIpcClient::REQUEST_FULL_PATH_AND_NAME
 			| EverythingIpcClient::REQUEST_SIZE | EverythingIpcClient::REQUEST_DATE_MODIFIED,
-		.sortType = EverythingIpcClient::SORT_NAME_ASCENDING };
+		.sortType = static_cast<DWORD>(EverythingSortMode::NameAscending) };
 	const auto *first = reinterpret_cast<const std::byte *>(&header);
 	return { first, first + sizeof(header) };
 }

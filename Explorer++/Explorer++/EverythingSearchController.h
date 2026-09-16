@@ -29,7 +29,8 @@ public:
 	explicit EverythingSearchController(QueryFunction queryFunction = {});
 
 	SubmitResult Submit(HWND replyWindow, std::wstring_view expression,
-		const EverythingSearchSettings &settings, const std::optional<std::wstring> &currentFolder);
+		const EverythingSearchSettings &settings, const std::optional<std::wstring> &currentFolder,
+		EverythingSortMode sortMode = EverythingSortMode::DateModifiedDescending);
 	bool HandleCopyData(DWORD messageId, std::span<const std::byte> data);
 	bool IsPendingReply(DWORD messageId) const;
 	bool RequestPage(DWORD offset);

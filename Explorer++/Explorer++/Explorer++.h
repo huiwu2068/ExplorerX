@@ -29,6 +29,7 @@
 #include <concurrencpp/concurrencpp.h>
 #include <wil/resource.h>
 #include <optional>
+#include <unordered_map>
 
 /* Sent when a folder size calculation has finished. */
 #define WM_APP_FOLDERSIZECOMPLETED WM_APP + 3
@@ -89,6 +90,8 @@ public:
 	const TabContainer *GetActiveTabContainer() const override;
 	void FocusActiveTab() override;
 	Tab *CreateTabFromPreservedTab(const PreservedTab *tab) override;
+	bool CanMoveTabToOtherPane(const Tab &tab) const override;
+	void MoveTabToOtherPane(Tab &tab) override;
 	using BrowserWindow::OpenDefaultItem;
 	using BrowserWindow::OpenItem;
 	void OpenDefaultItem(OpenFolderDisposition openFolderDisposition) override;
@@ -151,7 +154,6 @@ private:
 	static const UINT_PTR LISTVIEW_ITEM_CHANGED_TIMER_ID = 100001;
 	static const UINT LISTVIEW_ITEM_CHANGED_TIMEOUT = 50;
 	static const UINT_PTR EVERYTHING_SEARCH_TIMER_ID = 100002;
-	static const UINT_PTR EVERYTHING_SEARCH_DEBOUNCE_TIMER_ID = 100003;
 	static const UINT EVERYTHING_SEARCH_TIMEOUT = 5000;
 
 	static inline constexpr COLORREF TAB_BAR_DARK_MODE_BACKGROUND_COLOR = RGB(25, 25, 25);
@@ -174,6 +176,17 @@ private:
 	{
 		void *pContainer;
 		int uId;
+	};
+
+	struct EverythingSearchTabState
+	{
+		TabContainer *tabContainer;
+		std::wstring expression;
+		EverythingSearchSettings settings;
+		std::optional<std::wstring> currentFolder;
+		EverythingSortMode sortMode = EverythingSortMode::DateModifiedDescending;
+		std::vector<EverythingSearchResult> results;
+		std::uint32_t totalResults = 0;
 	};
 
 	struct MainMenuSubMenu
@@ -230,11 +243,18 @@ private:
 	void ShowEverythingSearchError(const std::wstring &message);
 	void OnEverythingListGetDisplayInfo(NMLVDISPINFOW *displayInfo);
 	void OnEverythingListCacheHint(const NMLVCACHEHINT *cacheHint);
+	void OnEverythingListColumnClick(const NMLISTVIEW *listView);
+	void UpdateEverythingListSortArrow();
+	void CancelActiveEverythingSearchRequest();
 	void ActivateEverythingSearchResult();
 	void ShowEverythingSearchResultContextMenu();
-	void EnsureEverythingSearchTab(const std::wstring &expression);
+	int CreateEverythingSearchTab(const std::wstring &expression,
+		const EverythingSearchSettings &settings, const std::optional<std::wstring> &currentFolder);
 	void UpdateEverythingSearchTabLayout();
 	bool IsEverythingSearchTabSelected() const;
+	EverythingSearchTabState *GetSelectedEverythingSearchTabState();
+	const EverythingSearchTabState *GetSelectedEverythingSearchTabState() const;
+	void MigrateEverythingSearchTabState(int oldTabId, Tab &newTab, TabContainer *newContainer);
 	void OnShowOptions();
 
 	void OnGoToOffset(int offset);
@@ -383,8 +403,8 @@ private:
 
 	BrowserCommandController m_commandController;
 	EverythingSearchController m_everythingSearchController;
-	std::vector<EverythingSearchResult> m_everythingSearchResults;
-	std::uint32_t m_everythingSearchTotalResults = 0;
+	std::unordered_map<int, EverythingSearchTabState> m_everythingSearchTabs;
+	std::optional<int> m_activeEverythingSearchTabId;
 
 	/** Internal state. **/
 	HWND m_lastActiveWindow;
@@ -426,8 +446,6 @@ private:
 	// Treeview
 	HolderWindow *m_treeViewHolder = nullptr;
 	HWND m_everythingSearchListView = nullptr;
-	TabContainer *m_everythingSearchTabContainer = nullptr;
-	std::optional<int> m_everythingSearchTabId;
 	ShellTreeView *m_shellTreeView = nullptr;
 	int m_treeViewWidth = LayoutDefaults::DEFAULT_TREEVIEW_WIDTH;
 

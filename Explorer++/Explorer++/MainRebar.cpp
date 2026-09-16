@@ -317,29 +317,10 @@ void Explorerplusplus::CreateEverythingSearchBar()
 	m_windowSubclasses.push_back(std::make_unique<WindowSubclass>(m_everythingSearchEdit,
 		[this](HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		{
-			auto scheduleSearch = [this, hwnd]()
-			{
-				if (GetWindowTextLength(hwnd) > 0)
-				{
-					SetTimer(m_hwnd, EVERYTHING_SEARCH_DEBOUNCE_TIMER_ID, 150, nullptr);
-				}
-				else
-				{
-					KillTimer(m_hwnd, EVERYTHING_SEARCH_DEBOUNCE_TIMER_ID);
-				}
-			};
 			if (msg == WM_KEYDOWN && wParam == VK_RETURN)
 			{
-				KillTimer(m_hwnd, EVERYTHING_SEARCH_DEBOUNCE_TIMER_ID);
 				SubmitEverythingSearch();
 				return static_cast<LRESULT>(0);
-			}
-			if (msg == WM_KEYUP || msg == WM_PASTE || msg == WM_CUT || msg == WM_CLEAR
-				|| msg == WM_UNDO)
-			{
-				const auto result = DefSubclassProc(hwnd, msg, wParam, lParam);
-				scheduleSearch();
-				return result;
 			}
 			if (msg == WM_SYSKEYDOWN && wParam == VK_DOWN)
 			{

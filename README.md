@@ -1,4 +1,4 @@
-[![Build](https://github.com/derceg/explorerplusplus/actions/workflows/build.yml/badge.svg)](https://github.com/derceg/explorerplusplus/actions/workflows/build.yml)
+[![Build](https://github.com/huiwu2068/explorerplusplus/actions/workflows/build.yml/badge.svg)](https://github.com/huiwu2068/explorerplusplus/actions/workflows/build.yml)
 [![Documentation Status](https://readthedocs.org/projects/explorerplusplus/badge/?version=latest)](https://explorerplusplus.readthedocs.io/en/latest/?badge=latest)
 [![Crowdin](https://d322cqt584bo4o.cloudfront.net/explorerplusplus/localized.svg)](https://crowdin.com/project/explorerplusplus)
 
@@ -22,7 +22,17 @@ Explorer++ is a lightweight and fast file manager for Windows.
 * Switch between icon, list, detail, thumbnail and tile view
 * Filter files
 
+### Features in this fork
+
+* Everything search integrated into the main toolbar. Searches run only after pressing Enter or clicking Search, and each search opens in a new result tab.
+* Everything result tabs support opening files and folders, the Windows shell context menu, alternating row colors, and server-side sorting by name, path, size, or modified time. Results default to newest modified first.
+* Optional dual-pane browsing via **View > Dual pane**, including moving a tab to the other pane from its tab context menu.
+* A Windows Terminal toolbar button for opening a terminal in the active folder.
+* New folders use Details view by default; the default can be changed in Options.
+
 ## Latest Builds
+
+Custom tagged builds with downloadable executables are available on the [GitHub Releases page](https://github.com/huiwu2068/explorerplusplus/releases/latest).
 
 ### 32-bit
 

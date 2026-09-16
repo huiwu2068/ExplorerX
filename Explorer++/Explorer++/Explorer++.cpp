@@ -279,7 +279,7 @@ WindowStorageData Explorerplusplus::GetStorageData() const
 		int selectedTab = 0;
 		for (const auto *tab : container->GetAllTabsInOrder())
 		{
-			if (m_everythingSearchTabId && tab->GetId() == *m_everythingSearchTabId)
+			if (m_everythingSearchTabs.contains(tab->GetId()))
 			{
 				continue;
 			}

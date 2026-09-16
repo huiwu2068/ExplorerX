@@ -168,7 +168,7 @@ std::vector<std::byte> BuildReply()
 		.numItems = 1,
 		.offset = 2,
 		.requestFlags = REQUEST_FLAGS,
-		.sortType = EverythingIpcClient::SORT_NAME_ASCENDING };
+		.sortType = static_cast<DWORD>(EverythingSortMode::NameAscending) };
 	Item2Header item{ .flags = 1, .dataOffset = sizeof(header) + sizeof(Item2Header) };
 	std::vector<std::byte> data;
 	Append(data, header);
@@ -218,7 +218,8 @@ TEST(EverythingIpcClientTest, BuildsQuery2PayloadUsingOfficialFieldOrder)
 			.matchWholeWord = true,
 			.regularExpression = true,
 			.ignoreDiacritics = false,
-			.matchPath = true } };
+			.matchPath = true },
+		.sortMode = EverythingSortMode::SizeDescending };
 	const HWND replyWindow = reinterpret_cast<HWND>(static_cast<UINT_PTR>(0x12345678));
 	auto payload =
 		TestableEverythingIpcClient::BuildQueryPayload(replyWindow, 1234, query, 50, 500);
@@ -233,7 +234,7 @@ TEST(EverythingIpcClientTest, BuildsQuery2PayloadUsingOfficialFieldOrder)
 	EXPECT_EQ(header.offset, 50u);
 	EXPECT_EQ(header.maximumResults, 500u);
 	EXPECT_EQ(header.requestFlags, REQUEST_FLAGS);
-	EXPECT_EQ(header.sortType, EverythingIpcClient::SORT_NAME_ASCENDING);
+	EXPECT_EQ(header.sortType, static_cast<DWORD>(EverythingSortMode::SizeDescending));
 	EXPECT_STREQ(reinterpret_cast<const wchar_t *>(payload.data() + sizeof(header)),
 		query.expression.c_str());
 }
