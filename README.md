@@ -22,17 +22,27 @@ Explorer++ is a lightweight and fast file manager for Windows.
 * Switch between icon, list, detail, thumbnail and tile view
 * Filter files
 
-### Features in this fork
+### Features in this fork (v1.5.0)
 
-* Everything search integrated into the main toolbar. Searches run only after pressing Enter or clicking Search, and each search opens in a new result tab.
-* Everything result tabs support opening files and folders, the Windows shell context menu, alternating row colors, and server-side sorting by name, path, size, or modified time. Results default to newest modified first.
-* Optional dual-pane browsing via **View > Dual pane**, including moving a tab to the other pane from its tab context menu.
-* A Windows Terminal toolbar button for opening a terminal in the active folder.
-* New folders use Details view by default; the default can be changed in Options.
+* **Everything toolbar search:** searches run only after pressing Enter or clicking Search, so typing never switches views unexpectedly. Every submitted search opens in its own result tab.
+* **Native-style Everything results:** open files or folders with the keyboard or mouse, use the Windows Shell context menu, and optionally display alternating row colors.
+* **Sortable search results:** sort by name, path, size, or modified time by clicking a column header. Results default to modified time descending (newest first).
+* **Dual-pane browsing:** enable it directly from **View > Dual pane**, then move tabs between panes from the tab context menu. No command-line feature flag is required.
+* **Windows Terminal integration:** open Windows Terminal in the active folder from the toolbar.
+* **Configurable default folder view:** new folders use Details view by default, and the default can be changed in Options.
+* **Safer tab closing:** double-clicking the last tab closes the tab without unexpectedly closing the Explorer++ window.
 
-## Latest Builds
+## v1.5.0 Downloads
 
-Custom tagged builds with downloadable executables are available on the [GitHub Releases page](https://github.com/huiwu2068/explorerplusplus/releases/latest).
+* [Explorer++ x64 executable](https://github.com/huiwu2068/explorerplusplus/releases/download/v1.5.0/Explorer%2B%2B_x64_v1.5.0.exe)
+* [Explorer++ x64 portable package](https://github.com/huiwu2068/explorerplusplus/releases/download/v1.5.0/Explorer%2B%2B_x64_portable_v1.5.0.zip)
+* [Release notes](https://github.com/huiwu2068/explorerplusplus/releases/tag/v1.5.0)
+
+## Author and Maintainer
+
+This fork and its v1.5.0 custom features are developed and maintained by **Hank Li**.
+
+## Upstream Development Builds
 
 ### 32-bit
 
