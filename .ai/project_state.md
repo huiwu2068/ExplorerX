@@ -1,5 +1,5 @@
 ---
-updated: 2026-09-16 09:31:01
+updated: 2026-09-16 10:27:35
 owner: lzh
 review_after_days: 14
 max_lines: 200
@@ -20,7 +20,7 @@ max_lines: 200
 
 ## 当前迭代焦点
 
-- TASK-001 已完成：Windows Terminal 工具栏、Everything 搜索窗格、左右双面板、跨面板复制/移动、默认详细列表和列宽继承均已实现并完成真实主窗口验收。
+- TASK-002 已完成：关闭最后标签不再退出；Everything 结果已迁移为结果标签，并支持双击/Enter 打开、Shell 右键菜单和可配置隔行底色。
 - 双面板默认开放，无需启动参数；普通启动后使用“View > Dual pane”切换并持久化用户选择。
 - `AGENTS.md` 的“快速与轻量”原则继续有效，后续设计与实现必须优先保证响应、资源占用和最小依赖。
 
@@ -34,7 +34,7 @@ max_lines: 200
 
 > 最多 3 条。只记录当前仍容易误导实现、设计或排障的坑；长期经验移入 `memory/` 或 `doc/09_note/`。
 
-- 独立 Everything IPC 回调窗口通过不能代表主窗口链路通过；回归必须覆盖真实主窗口的 `WM_COPYDATA`、Holder `WM_NOTIFY` 转发、定时器和虚拟列表更新。
+- 独立 Everything IPC 回调窗口通过不能代表主窗口链路通过；回归必须覆盖真实主窗口的 `WM_COPYDATA`、主窗口 `WM_NOTIFY`、定时器、结果标签和虚拟列表更新。
 - 不应为双面板重复增加 `Config::dualPane`、`Feature::DualPane` 或 `IDM_VIEW_DUAL_PANE`。
 
 ## 当前临时约束
@@ -44,13 +44,13 @@ max_lines: 200
 
 ## 最近一次完整验证
 
-- 2026-09-16 09:15:00：Debug/Release x64 主程序构建通过；815 项非剪贴板测试全部通过；Everything 1.4.1.969 真实主窗口返回 13 条且可导航；文件双击/列宽、双面板 100 次切换与恢复、跨面板真实复制/移动，以及 Windows Terminal 1.24.11911.0 特殊字符目录均通过。
+- 2026-09-16 10:27:35：TASK-002 Release x64 主程序与测试工程构建通过；非剪贴板相关测试 797/797、Everything/配置定向测试 21/21 通过；文档和差异检查通过。新产物真实进程成功创建主窗口并保持响应。
 
 ## 当前不可用验证
 
-- Windows 应用控制接口未枚举出 Explorer++，无法生成截图式验收证据；已用直接驱动真实 `Explorer++.exe` 主窗口和读取真实进程状态的端到端程序替代。
+- Windows 应用控制接口仍未枚举出 Explorer++；TASK-002 无法生成结果标签、右键菜单和隔行底色的截图式验收证据，不得把构建或 IPC 测试称为完整 GUI 验收。
 - 解决方案级 Release 的安装器项目需要本机未安装的 WiX Toolset 3.11；Release x64 Explorer++ 主程序本身构建成功。
 
 ## 下次会话提醒
 
-- TASK-001 已完成；后续若改动 Everything 或双面板，先读 `memory/MEM-001_task001_terminal_everything_dual_pane.md`。
+- 后续修改 Everything 结果交互前读取 `doc/05_tasks/TASK-002_everything_results_tab_interactions.md` 和 `memory/MEM-002_task002_everything_results_tab_interactions.md`。

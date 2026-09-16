@@ -23,6 +23,7 @@ Config BuildReference()
 	config.everythingSearchSettings.regularExpression = true;
 	config.everythingSearchSettings.ignoreDiacritics = false;
 	config.everythingSearchSettings.matchPath = true;
+	config.everythingSearchSettings.alternateRowColors = false;
 	config.infoTipType = InfoTipType::Custom;
 	config.displayWindowCentreColor = RGB(255, 0, 0);
 	config.displayWindowSurroundColor = RGB(0, 255, 0);

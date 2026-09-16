@@ -78,15 +78,10 @@ Explorerplusplus::Explorerplusplus(AppServices *appServices, HINSTANCE resourceI
 		{
 			m_config->dualPane = storageData->dualPane;
 			m_config->dualPaneSplitRatio = std::clamp(storageData->dualPaneSplitRatio, 2000, 8000);
-			m_everythingSearchPaneVisible = storageData->everythingSearchPaneVisible;
-			m_everythingSearchPaneWidth = std::max(storageData->everythingSearchPaneWidth, 260);
 			m_preservedRightPaneTabs = storageData->rightPaneTabs;
 			m_preservedRightPaneSelectedTab = storageData->rightPaneSelectedTab;
 		}
 	}
-	m_everythingSearchPaneWidth =
-		DpiCompatibility::GetInstance().ScaleValue(m_hwnd, m_everythingSearchPaneWidth);
-
 	SetUpControlVisibilityConfigListeners();
 
 	m_windowSubclasses.push_back(std::make_unique<WindowSubclass>(m_hwnd,
@@ -278,11 +273,30 @@ WindowStorageData Explorerplusplus::GetStorageData() const
 	placement.length = sizeof(placement);
 	BOOL res = GetWindowPlacement(m_hwnd, &placement);
 	CHECK(res);
+	auto serializeTabs = [this](const TabContainer *container)
+	{
+		std::vector<TabStorageData> tabs;
+		int selectedTab = 0;
+		for (const auto *tab : container->GetAllTabsInOrder())
+		{
+			if (m_everythingSearchTabId && tab->GetId() == *m_everythingSearchTabId)
+			{
+				continue;
+			}
+			if (container->IsTabSelected(*tab))
+			{
+				selectedTab = static_cast<int>(tabs.size());
+			}
+			tabs.push_back(tab->GetStorageData());
+		}
+		return std::pair(std::move(tabs), selectedTab);
+	};
+	const auto [leftTabs, leftSelectedTab] = serializeTabs(m_browserPane->GetTabContainer());
 
 	WindowStorageData data{ .bounds = placement.rcNormalPosition,
 		.showState = NativeShowStateToShowState(placement.showCmd),
-		.tabs = m_browserPane->GetTabContainer()->GetStorageData(),
-		.selectedTab = m_browserPane->GetTabContainer()->GetSelectedTabIndex(),
+		.tabs = leftTabs,
+		.selectedTab = leftSelectedTab,
 		.mainRebarInfo = m_mainRebarView->GetStorageData(),
 		.mainToolbarButtons = m_mainToolbar->GetButtonsForStorage(),
 		.treeViewWidth = m_treeViewWidth,
@@ -293,15 +307,15 @@ WindowStorageData Explorerplusplus::GetStorageData() const
 		.activePane = m_activePane ? m_activePane->GetId() : BrowserPaneId::Left,
 		.dualPaneSplitRatio = m_config->dualPaneSplitRatio,
 		.rightPaneSelectedTab = 0,
-		.everythingSearchPaneVisible = m_everythingSearchPaneVisible,
-		.everythingSearchPaneWidth = MulDiv(m_everythingSearchPaneWidth, 96,
-			static_cast<int>(DpiCompatibility::GetInstance().GetDpiForWindow(m_hwnd))) };
+		.everythingSearchPaneVisible = false,
+		.everythingSearchPaneWidth = 420 };
 	if (m_config->dualPane && m_secondaryBrowserPane
 		&& m_secondaryBrowserPane->GetTabContainer()->GetNumTabs() > 0)
 	{
-		data.rightPaneTabs = m_secondaryBrowserPane->GetTabContainer()->GetStorageData();
-		data.rightPaneSelectedTab =
-			m_secondaryBrowserPane->GetTabContainer()->GetSelectedTabIndex();
+		auto [rightTabs, rightSelectedTab] =
+			serializeTabs(m_secondaryBrowserPane->GetTabContainer());
+		data.rightPaneTabs = std::move(rightTabs);
+		data.rightPaneSelectedTab = rightSelectedTab;
 	}
 	else if (m_config->dualPane && !m_preservedRightPaneTabs.empty())
 	{
@@ -368,8 +382,13 @@ void Explorerplusplus::Close()
 
 	BeginShutdown();
 
-	// When the last tab is closed, the window will be destroyed.
-	GetActiveTabContainer()->CloseAllTabs();
+	// Close the secondary pane first so removal of the final left-hand tab remains the single point
+	// that schedules window destruction.
+	if (m_secondaryBrowserPane)
+	{
+		m_secondaryBrowserPane->GetTabContainer()->CloseAllTabs();
+	}
+	m_browserPane->GetTabContainer()->CloseAllTabs();
 }
 
 void Explorerplusplus::BeginShutdown()

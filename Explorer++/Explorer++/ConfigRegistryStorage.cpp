@@ -89,8 +89,8 @@ void LoadFromKey(HKEY settingsKey, Config &config)
 	bool everythingGlobal = false;
 	RegistrySettings::Read32BitValueFromRegistry(settingsKey, L"EverythingSearchGlobal",
 		everythingGlobal);
-	config.everythingSearchSettings.scope = everythingGlobal ? EverythingSearchScope::Global
-		: EverythingSearchScope::CurrentFolder;
+	config.everythingSearchSettings.scope =
+		everythingGlobal ? EverythingSearchScope::Global : EverythingSearchScope::CurrentFolder;
 	RegistrySettings::Read32BitValueFromRegistry(settingsKey, L"EverythingMatchCase",
 		config.everythingSearchSettings.matchCase);
 	RegistrySettings::Read32BitValueFromRegistry(settingsKey, L"EverythingMatchWholeWord",
@@ -101,6 +101,8 @@ void LoadFromKey(HKEY settingsKey, Config &config)
 		config.everythingSearchSettings.ignoreDiacritics);
 	RegistrySettings::Read32BitValueFromRegistry(settingsKey, L"EverythingMatchPath",
 		config.everythingSearchSettings.matchPath);
+	RegistrySettings::Read32BitValueFromRegistry(settingsKey, L"EverythingAlternateRowColors",
+		config.everythingSearchSettings.alternateRowColors);
 
 	auto res = RegistrySettings::Read32BitValueFromRegistry(settingsKey, L"OpenContainerFiles",
 		config.openContainerFiles);
@@ -306,6 +308,8 @@ void SaveToKey(HKEY settingsKey, const Config &config)
 		config.everythingSearchSettings.ignoreDiacritics);
 	RegistrySettings::SaveDword(settingsKey, L"EverythingMatchPath",
 		config.everythingSearchSettings.matchPath);
+	RegistrySettings::SaveDword(settingsKey, L"EverythingAlternateRowColors",
+		config.everythingSearchSettings.alternateRowColors);
 	RegistrySettings::SaveDword(settingsKey, L"OpenContainerFiles", config.openContainerFiles);
 	RegistrySettings::SaveDword(settingsKey, L"InsertSorted",
 		config.globalFolderSettings.insertSorted);

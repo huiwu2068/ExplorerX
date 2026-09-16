@@ -47,6 +47,8 @@
 #include "../Helper/ProcessHelper.h"
 #include "../Helper/RegistrySettings.h"
 #include "../Helper/ShellHelper.h"
+#include "../Helper/ShellItemContextMenu.h"
+#include "../Helper/ShellItemContextMenuDelegate.h"
 #include "../Helper/WindowHelper.h"
 #include <boost/range/adaptor/map.hpp>
 #include <glog/logging.h>
@@ -86,6 +88,43 @@ std::wstring FormatEverythingModifiedTime(const FILETIME &utcFileTime)
 	return std::wstring(date) + L" " + time;
 }
 
+class EverythingResultContextMenuDelegate : public ShellItemContextMenuDelegate
+{
+public:
+	explicit EverythingResultContextMenuDelegate(std::function<void()> openResult) :
+		m_openResult(std::move(openResult))
+	{
+	}
+
+	void UpdateMenuEntries(PCIDLIST_ABSOLUTE, const std::vector<PidlChild> &,
+		ShellContextMenuBuilder *) override
+	{
+	}
+
+	bool MaybeHandleShellMenuItem(PCIDLIST_ABSOLUTE, const std::vector<PidlChild> &,
+		const std::wstring &verb) override
+	{
+		if (verb != L"open")
+		{
+			return false;
+		}
+		m_openResult();
+		return true;
+	}
+
+	void HandleCustomMenuItem(PCIDLIST_ABSOLUTE, const std::vector<PidlChild> &, UINT) override
+	{
+	}
+
+	std::wstring GetHelpTextForCustomItem(UINT) override
+	{
+		return {};
+	}
+
+private:
+	std::function<void()> m_openResult;
+};
+
 }
 
 void Explorerplusplus::OpenDefaultItem(OpenFolderDisposition openFolderDisposition)
@@ -122,42 +161,11 @@ bool Explorerplusplus::OnEverythingCopyData(const COPYDATASTRUCT *copyData)
 
 void Explorerplusplus::CreateEverythingSearchPane()
 {
-	m_everythingSearchHolder = HolderWindow::Create(m_hwnd, L"Everything results",
-		WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, L"Close Everything results", m_config,
-		m_resourceLoader, m_appServices->GetDarkModeManager(),
-		m_appServices->GetDarkModeColorProvider(), HolderWindow::ResizeEdge::Left);
-	m_everythingSearchHolder->SetCloseButtonClickedCallback(
-		[this]()
-		{
-			m_everythingSearchPaneVisible = false;
-			UpdateLayout();
-		});
-	m_everythingSearchHolder->SetResizedCallback(
-		[this](int width)
-		{
-			const int minimumWidth = DpiCompatibility::GetInstance().ScaleValue(m_hwnd, 260);
-			m_everythingSearchPaneWidth = std::max(width, minimumWidth);
-			UpdateLayout();
-		});
-
-	m_everythingSearchListView = CreateWindow(WC_LISTVIEW, L"",
-		WS_CHILD | WS_VISIBLE | LVS_REPORT | LVS_OWNERDATA | LVS_SHOWSELALWAYS, 0, 0, 0, 0,
-		m_everythingSearchHolder->GetHWND(), nullptr, GetModuleHandle(nullptr), nullptr);
-	// List-view notifications are delivered to the immediate parent (the Holder window), while the
-	// existing notification dispatcher belongs to the Explorer++ main window. Forward only this
-	// result list's notifications so virtual text, cache hints and activation follow the real
-	// route.
-	m_windowSubclasses.push_back(std::make_unique<WindowSubclass>(
-		m_everythingSearchHolder->GetHWND(),
-		[this](HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
-		{
-			if (msg == WM_NOTIFY
-				&& reinterpret_cast<const NMHDR *>(lParam)->hwndFrom == m_everythingSearchListView)
-			{
-				return SendMessage(m_hwnd, msg, wParam, lParam);
-			}
-			return DefSubclassProc(hwnd, msg, wParam, lParam);
-		}));
+	m_everythingSearchListView =
+		CreateWindow(WC_LISTVIEW, L"", WS_CHILD | LVS_REPORT | LVS_OWNERDATA | LVS_SHOWSELALWAYS, 0,
+			0, 0, 0, m_hwnd, nullptr, GetModuleHandle(nullptr), nullptr);
+	SendMessage(m_everythingSearchListView, WM_SETFONT,
+		reinterpret_cast<WPARAM>(GetStockObject(DEFAULT_GUI_FONT)), TRUE);
 	ListView_SetExtendedListViewStyle(m_everythingSearchListView,
 		LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_LABELTIP);
 	auto &dpiCompatibility = DpiCompatibility::GetInstance();
@@ -170,7 +178,59 @@ void Explorerplusplus::CreateEverythingSearchPane()
 		ListView_InsertColumn(m_everythingSearchListView,
 			Header_GetItemCount(ListView_GetHeader(m_everythingSearchListView)), &column);
 	}
-	m_everythingSearchHolder->SetContentChild(m_everythingSearchListView);
+}
+
+void Explorerplusplus::EnsureEverythingSearchTab(const std::wstring &expression)
+{
+	if (m_everythingSearchTabId && m_everythingSearchTabContainer)
+	{
+		if (auto *tab = m_everythingSearchTabContainer->MaybeGetTab(*m_everythingSearchTabId))
+		{
+			tab->SetCustomName(L"Everything - " + expression);
+			m_everythingSearchTabContainer->SelectTab(*tab);
+			return;
+		}
+	}
+
+	auto *tabContainer = GetActivePane()->GetTabContainer();
+	const std::wstring backingDirectory = m_pActiveShellBrowser->InVirtualFolder()
+		? m_config->defaultTabDirectory
+		: m_pActiveShellBrowser->GetDirectoryPath();
+	Tab &tab = tabContainer->CreateNewTab(backingDirectory,
+		{ .name = L"Everything - " + expression, .selected = false });
+	m_everythingSearchTabContainer = tabContainer;
+	m_everythingSearchTabId = tab.GetId();
+	tabContainer->SelectTab(tab);
+}
+
+bool Explorerplusplus::IsEverythingSearchTabSelected() const
+{
+	if (!m_everythingSearchTabId || !m_everythingSearchTabContainer)
+	{
+		return false;
+	}
+
+	auto *tab = m_everythingSearchTabContainer->MaybeGetTab(*m_everythingSearchTabId);
+	return tab && m_everythingSearchTabContainer->IsTabSelected(*tab);
+}
+
+void Explorerplusplus::UpdateEverythingSearchTabLayout()
+{
+	ShowWindow(m_everythingSearchListView, SW_HIDE);
+	if (!IsEverythingSearchTabSelected())
+	{
+		return;
+	}
+
+	auto *tab = m_everythingSearchTabContainer->MaybeGetTab(*m_everythingSearchTabId);
+	HWND backingListView = tab->GetShellBrowserImpl()->GetListView();
+	RECT rect;
+	GetWindowRect(backingListView, &rect);
+	MapWindowPoints(HWND_DESKTOP, m_hwnd, reinterpret_cast<POINT *>(&rect), 2);
+	SetWindowPos(backingListView, nullptr, 0, 0, 0, 0,
+		SWP_HIDEWINDOW | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+	SetWindowPos(m_everythingSearchListView, HWND_TOP, rect.left, rect.top, GetRectWidth(&rect),
+		GetRectHeight(&rect), SWP_SHOWWINDOW);
 }
 
 void Explorerplusplus::OnEverythingSearchResults(const EverythingIpcReply &reply)
@@ -193,11 +253,14 @@ void Explorerplusplus::OnEverythingSearchResults(const EverythingIpcReply &reply
 			std::min(reply.results.size(), m_everythingSearchResults.size() - reply.offset);
 		std::copy_n(reply.results.begin(), count, m_everythingSearchResults.begin() + reply.offset);
 	}
-	m_everythingSearchPaneVisible = true;
-	SetWindowText(m_everythingSearchHolder->GetHWND(),
-		(L"Everything results (" + std::to_wstring(m_everythingSearchTotalResults)
-			+ (m_everythingSearchTotalResults > MAX_RESULTS ? L", truncated" : L"") + L")")
-			.c_str());
+	if (m_everythingSearchTabId && m_everythingSearchTabContainer)
+	{
+		if (auto *tab = m_everythingSearchTabContainer->MaybeGetTab(*m_everythingSearchTabId))
+		{
+			tab->SetCustomName(L"Everything (" + std::to_wstring(m_everythingSearchTotalResults)
+				+ (m_everythingSearchTotalResults > MAX_RESULTS ? L"+" : L"") + L")");
+		}
+	}
 	ListView_SetItemCountEx(m_everythingSearchListView,
 		static_cast<int>(m_everythingSearchResults.size()), LVSICF_NOSCROLL);
 	UpdateLayout();
@@ -240,8 +303,13 @@ void Explorerplusplus::OnEverythingQueryError(EverythingQueryError error)
 
 void Explorerplusplus::ShowEverythingSearchError(const std::wstring &message)
 {
-	m_everythingSearchPaneVisible = true;
-	SetWindowText(m_everythingSearchHolder->GetHWND(), message.c_str());
+	if (m_everythingSearchTabId && m_everythingSearchTabContainer)
+	{
+		if (auto *tab = m_everythingSearchTabContainer->MaybeGetTab(*m_everythingSearchTabId))
+		{
+			tab->SetCustomName(L"Everything - " + message);
+		}
+	}
 	UpdateLayout();
 }
 
@@ -257,6 +325,7 @@ void Explorerplusplus::SubmitEverythingSearch()
 	{
 		currentFolder = m_pActiveShellBrowser->GetDirectoryPath();
 	}
+	EnsureEverythingSearchTab(expression);
 	LOG(INFO) << "Submitting Everything query from main window: scope="
 			  << (m_config->everythingSearchSettings.scope == EverythingSearchScope::Global
 						 ? "global"
@@ -267,8 +336,13 @@ void Explorerplusplus::SubmitEverythingSearch()
 	// Everything can reply before Submit() returns. Establish the visible pending state and timeout
 	// first, so a fast result callback can clear them without this method overwriting the result
 	// title or starting a stale timeout afterwards.
-		m_everythingSearchPaneVisible = true;
-		SetWindowText(m_everythingSearchHolder->GetHWND(), L"Everything search in progress…");
+	if (m_everythingSearchTabId && m_everythingSearchTabContainer)
+	{
+		if (auto *tab = m_everythingSearchTabContainer->MaybeGetTab(*m_everythingSearchTabId))
+		{
+			tab->SetCustomName(L"Everything - 搜索中…");
+		}
+	}
 		SetTimer(m_hwnd, EVERYTHING_SEARCH_TIMER_ID, EVERYTHING_SEARCH_TIMEOUT, nullptr);
 		UpdateLayout();
 
@@ -318,7 +392,7 @@ void Explorerplusplus::OnEverythingListGetDisplayInfo(NMLVDISPINFOW *displayInfo
 	}
 }
 
-void Explorerplusplus::ActivateEverythingSearchResult(bool openFileDirectly)
+void Explorerplusplus::ActivateEverythingSearchResult()
 {
 	const int item = ListView_GetNextItem(m_everythingSearchListView, -1, LVNI_SELECTED);
 	if (item < 0 || static_cast<size_t>(item) >= m_everythingSearchResults.size())
@@ -342,27 +416,44 @@ void Explorerplusplus::ActivateEverythingSearchResult(bool openFileDirectly)
 		return;
 	}
 
-	if (openFileDirectly)
+	OpenItem(fullPidl.get(), OpenFolderDisposition::ForegroundTab);
+}
+
+void Explorerplusplus::ShowEverythingSearchResultContextMenu()
+{
+	const int item = ListView_GetNextItem(m_everythingSearchListView, -1, LVNI_SELECTED);
+	if (item < 0 || static_cast<size_t>(item) >= m_everythingSearchResults.size())
 	{
-		OpenFileItem(fullPidl.get(), L"");
 		return;
 	}
 
+	unique_pidl_absolute fullPidl;
+	if (FAILED(ParseDisplayNameForNavigation(m_everythingSearchResults[item].fullPath, fullPidl)))
+	{
+		return;
+	}
+
+	unique_pidl_child childPidl(ILCloneChild(ILFindLastID(fullPidl.get())));
 	unique_pidl_absolute parentPidl(ILCloneFull(fullPidl.get()));
-	if (!parentPidl || !ILRemoveLastID(parentPidl.get()))
+	if (!childPidl || !parentPidl || !ILRemoveLastID(parentPidl.get()))
 	{
-		MessageBox(m_hwnd, L"The parent folder for this result cannot be opened.",
-			L"Everything search", MB_OK | MB_ICONERROR);
 		return;
 	}
 
-	auto navigateParams = NavigateParams::Normal(parentPidl.get());
-	Tab &newTab =
-		GetActivePane()->GetTabContainer()->CreateNewTab(navigateParams, { .selected = true });
-	if (ArePidlsEquivalent(newTab.GetShellBrowser()->GetDirectory().Raw(), parentPidl.get()))
+	ShellItemContextMenu contextMenu(parentPidl.get(), { childPidl.get() }, this);
+	EverythingResultContextMenuDelegate resultDelegate([this]() { ActivateEverythingSearchResult(); });
+	contextMenu.AddDelegate(&resultDelegate);
+
+	POINT point;
+	const DWORD messagePosition = GetMessagePos();
+	point.x = GET_X_LPARAM(messagePosition);
+	point.y = GET_Y_LPARAM(messagePosition);
+	ShellItemContextMenu::Flags flags = ShellItemContextMenu::Flags::None;
+	if (IsKeyDown(VK_SHIFT))
 	{
-		newTab.GetShellBrowserImpl()->SelectItems({ fullPidl.get() });
+		WI_SetFlag(flags, ShellItemContextMenu::Flags::ExtendedVerbs);
 	}
+	contextMenu.ShowMenu(m_everythingSearchListView, &point, nullptr, flags);
 }
 
 void Explorerplusplus::OpenItem(const std::wstring &itemPath,
@@ -656,19 +747,6 @@ void Explorerplusplus::UpdateLayout()
 		indentLeft = m_treeViewWidth;
 	}
 
-	const int minimumEverythingPaneWidth = dpiCompatibility.ScaleValue(m_hwnd, 260);
-	const int minimumFileWorkspaceWidth = m_config->dualPane && m_secondaryBrowserPane
-		? 2 * dpiCompatibility.ScaleValue(m_hwnd, 240) + dpiCompatibility.ScaleValue(m_hwnd, 6)
-		: dpiCompatibility.ScaleValue(m_hwnd, 320);
-	const int maximumEverythingPaneWidth =
-		std::max(0, mainWindowWidth - indentLeft - indentRight - minimumFileWorkspaceWidth);
-	const int everythingPaneWidth =
-		m_everythingSearchPaneVisible && maximumEverythingPaneWidth >= minimumEverythingPaneWidth
-		? std::min(std::max(m_everythingSearchPaneWidth, minimumEverythingPaneWidth),
-			maximumEverythingPaneWidth)
-		: 0;
-	indentRight += everythingPaneWidth;
-
 	// Since the display area is indicated to start at (0, 0), displayRect.top will contain the
 	// height of the tab control above the display area.
 	RECT displayRect = { 0, 0, 0, 0 };
@@ -760,14 +838,6 @@ void Explorerplusplus::UpdateLayout()
 			SetWindowPos(m_displayWindow->GetHWND(), nullptr, 0, mainWindowHeight - indentBottom,
 				mainWindowWidth, m_displayWindowHeight, displayWindowShowFlags);
 		}
-		SetWindowPos(m_everythingSearchHolder->GetHWND(), nullptr,
-			mainWindowWidth - everythingPaneWidth
-				- (m_config->showDisplayWindow.get() && m_config->displayWindowVertical
-					? m_displayWindowWidth
-					: 0),
-			indentRebar, everythingPaneWidth, mainWindowHeight - indentRebar - indentBottom,
-			(m_everythingSearchPaneVisible ? SWP_SHOWWINDOW : SWP_HIDEWINDOW) | SWP_NOZORDER);
-
 		const int listViewTop = indentTop;
 		int listViewHeight = mainWindowHeight - indentBottom - listViewTop;
 		if (m_config->showTabBarAtBottom.get() && m_bShowTabBar)
@@ -798,6 +868,7 @@ void Explorerplusplus::UpdateLayout()
 			splitterWidth, holderHeight, SWP_SHOWWINDOW);
 		layoutPane(m_secondaryBrowserPane.get(), m_secondaryTabBacking,
 			indentLeft + firstPaneWidth + splitterWidth, secondPaneWidth);
+		UpdateEverythingSearchTabLayout();
 		return;
 	}
 
@@ -853,14 +924,6 @@ void Explorerplusplus::UpdateLayout()
 		SetWindowPos(m_displayWindow->GetHWND(), nullptr, 0, mainWindowHeight - indentBottom,
 			mainWindowWidth, m_displayWindowHeight, displayWindowShowFlags);
 	}
-	SetWindowPos(m_everythingSearchHolder->GetHWND(), nullptr,
-		mainWindowWidth - everythingPaneWidth
-			- (m_config->showDisplayWindow.get() && m_config->displayWindowVertical
-				? m_displayWindowWidth
-				: 0),
-		indentRebar, everythingPaneWidth, mainWindowHeight - indentRebar - indentBottom,
-		(m_everythingSearchPaneVisible ? SWP_SHOWWINDOW : SWP_HIDEWINDOW) | SWP_NOZORDER);
-
 	/* <---- ALL listview windows ----> */
 
 	for (auto &tab : GetActivePane()->GetTabContainer()->GetAllTabs() | boost::adaptors::map_values)
@@ -879,6 +942,7 @@ void Explorerplusplus::UpdateLayout()
 		SetWindowPos(tab->GetShellBrowserImpl()->GetListView(), NULL, indentLeft, indentTop, width,
 			height, showFlags);
 	}
+	UpdateEverythingSearchTabLayout();
 
 	/* <---- Status bar ----> */
 

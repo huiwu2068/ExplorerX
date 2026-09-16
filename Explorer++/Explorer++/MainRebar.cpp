@@ -391,6 +391,9 @@ void Explorerplusplus::ShowEverythingSearchMenu()
 	appendOption(EVERYTHING_SEARCH_IGNORE_DIACRITICS_ID, L"忽略变音标记 (&D)",
 		settings.ignoreDiacritics);
 	appendOption(EVERYTHING_SEARCH_MATCH_PATH_ID, L"匹配路径 (&F)", settings.matchPath);
+	AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
+	appendOption(EVERYTHING_SEARCH_ALTERNATE_ROWS_ID, L"隔行底色 (&S)",
+		settings.alternateRowColors);
 
 	RECT buttonRect;
 	GetWindowRect(m_everythingSearchButton, &buttonRect);
@@ -421,6 +424,10 @@ void Explorerplusplus::ShowEverythingSearchMenu()
 		break;
 	case EVERYTHING_SEARCH_MATCH_PATH_ID:
 		updatedSettings.matchPath = !updatedSettings.matchPath;
+		break;
+	case EVERYTHING_SEARCH_ALTERNATE_ROWS_ID:
+		updatedSettings.alternateRowColors = !updatedSettings.alternateRowColors;
+		InvalidateRect(m_everythingSearchListView, nullptr, TRUE);
 		break;
 	}
 }

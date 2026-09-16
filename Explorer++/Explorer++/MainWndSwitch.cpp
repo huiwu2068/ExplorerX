@@ -20,6 +20,7 @@
 #include "BrowserView.h"
 #include "ClipboardOperations.h"
 #include "Config.h"
+#include "DarkModeManager.h"
 #include "DisplayWindow/DisplayWindow.h"
 #include "DrivesToolbar.h"
 #include "DrivesToolbarView.h"
@@ -1089,16 +1090,45 @@ LRESULT CALLBACK Explorerplusplus::NotifyHandler(HWND hwnd, UINT msg, WPARAM wPa
 			const auto *keyDown = reinterpret_cast<const NMLVKEYDOWN *>(lParam);
 			if (keyDown->wVKey == VK_RETURN)
 			{
-				ActivateEverythingSearchResult(IsKeyDown(VK_CONTROL));
+				ActivateEverythingSearchResult();
 			}
 			return 0;
 		}
 		return OnListViewKeyDown(lParam);
 
+	case NM_CUSTOMDRAW:
+		if (nmhdr->hwndFrom == m_everythingSearchListView
+			&& m_config->everythingSearchSettings.alternateRowColors)
+		{
+			auto *customDraw = reinterpret_cast<NMLVCUSTOMDRAW *>(lParam);
+			if (customDraw->nmcd.dwDrawStage == CDDS_PREPAINT)
+			{
+				return CDRF_NOTIFYITEMDRAW;
+			}
+			if (customDraw->nmcd.dwDrawStage == CDDS_ITEMPREPAINT
+				&& customDraw->nmcd.dwItemSpec % 2 == 1
+				&& WI_IsFlagClear(customDraw->nmcd.uItemState, CDIS_SELECTED))
+			{
+				customDraw->clrTextBk = m_appServices->GetDarkModeManager()->IsDarkModeEnabled()
+					? RGB(38, 38, 38)
+					: RGB(245, 245, 245);
+				return CDRF_NEWFONT;
+			}
+		}
+		break;
+
 	case NM_DBLCLK:
 		if (nmhdr->hwndFrom == m_everythingSearchListView)
 		{
-			ActivateEverythingSearchResult(false);
+			ActivateEverythingSearchResult();
+			return 0;
+		}
+		break;
+
+	case NM_RCLICK:
+		if (nmhdr->hwndFrom == m_everythingSearchListView)
+		{
+			ShowEverythingSearchResultContextMenu();
 			return 0;
 		}
 		break;

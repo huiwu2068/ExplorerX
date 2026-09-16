@@ -146,6 +146,7 @@ private:
 	static const UINT EVERYTHING_SEARCH_REGEX_ID = 41014;
 	static const UINT EVERYTHING_SEARCH_IGNORE_DIACRITICS_ID = 41015;
 	static const UINT EVERYTHING_SEARCH_MATCH_PATH_ID = 41016;
+	static const UINT EVERYTHING_SEARCH_ALTERNATE_ROWS_ID = 41017;
 
 	static const UINT_PTR LISTVIEW_ITEM_CHANGED_TIMER_ID = 100001;
 	static const UINT LISTVIEW_ITEM_CHANGED_TIMEOUT = 50;
@@ -229,7 +230,11 @@ private:
 	void ShowEverythingSearchError(const std::wstring &message);
 	void OnEverythingListGetDisplayInfo(NMLVDISPINFOW *displayInfo);
 	void OnEverythingListCacheHint(const NMLVCACHEHINT *cacheHint);
-	void ActivateEverythingSearchResult(bool openFileDirectly);
+	void ActivateEverythingSearchResult();
+	void ShowEverythingSearchResultContextMenu();
+	void EnsureEverythingSearchTab(const std::wstring &expression);
+	void UpdateEverythingSearchTabLayout();
+	bool IsEverythingSearchTabSelected() const;
 	void OnShowOptions();
 
 	void OnGoToOffset(int offset);
@@ -420,10 +425,9 @@ private:
 
 	// Treeview
 	HolderWindow *m_treeViewHolder = nullptr;
-	HolderWindow *m_everythingSearchHolder = nullptr;
 	HWND m_everythingSearchListView = nullptr;
-	bool m_everythingSearchPaneVisible = false;
-	int m_everythingSearchPaneWidth = 420;
+	TabContainer *m_everythingSearchTabContainer = nullptr;
+	std::optional<int> m_everythingSearchTabId;
 	ShellTreeView *m_shellTreeView = nullptr;
 	int m_treeViewWidth = LayoutDefaults::DEFAULT_TREEVIEW_WIDTH;
 

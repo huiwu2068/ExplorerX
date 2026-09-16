@@ -160,18 +160,18 @@ void LoadFromNode(IXMLDOMNode *settingsNode, Config &config)
 	config.dualPaneSplitRatio = std::clamp(config.dualPaneSplitRatio, 2000, 8000);
 	bool everythingGlobal = false;
 	GetBoolSetting(settingsNode, L"EverythingSearchGlobal", everythingGlobal);
-	config.everythingSearchSettings.scope = everythingGlobal ? EverythingSearchScope::Global
-		: EverythingSearchScope::CurrentFolder;
-	GetBoolSetting(settingsNode, L"EverythingMatchCase",
-		config.everythingSearchSettings.matchCase);
+	config.everythingSearchSettings.scope =
+		everythingGlobal ? EverythingSearchScope::Global : EverythingSearchScope::CurrentFolder;
+	GetBoolSetting(settingsNode, L"EverythingMatchCase", config.everythingSearchSettings.matchCase);
 	GetBoolSetting(settingsNode, L"EverythingMatchWholeWord",
 		config.everythingSearchSettings.matchWholeWord);
 	GetBoolSetting(settingsNode, L"EverythingRegex",
 		config.everythingSearchSettings.regularExpression);
 	GetBoolSetting(settingsNode, L"EverythingIgnoreDiacritics",
 		config.everythingSearchSettings.ignoreDiacritics);
-	GetBoolSetting(settingsNode, L"EverythingMatchPath",
-		config.everythingSearchSettings.matchPath);
+	GetBoolSetting(settingsNode, L"EverythingMatchPath", config.everythingSearchSettings.matchPath);
+	GetBoolSetting(settingsNode, L"EverythingAlternateRowColors",
+		config.everythingSearchSettings.alternateRowColors);
 	GetBoolSetting(settingsNode, L"ExtendTabControl", config.extendTabControl);
 	GetBoolSetting(settingsNode, L"ForceSize", config.globalFolderSettings.forceSize);
 
@@ -370,10 +370,12 @@ void SaveToNode(IXMLDOMDocument *xmlDocument, IXMLDOMElement *settingsNode, cons
 	XMLSettings::WriteStandardSetting(xmlDocument, settingsNode, SETTING_NODE_NAME,
 		L"DualPaneSplitRatio", XMLSettings::EncodeIntValue(config.dualPaneSplitRatio));
 	XMLSettings::WriteStandardSetting(xmlDocument, settingsNode, SETTING_NODE_NAME,
-		L"EverythingSearchGlobal", XMLSettings::EncodeBoolValue(
+		L"EverythingSearchGlobal",
+		XMLSettings::EncodeBoolValue(
 			config.everythingSearchSettings.scope == EverythingSearchScope::Global));
 	XMLSettings::WriteStandardSetting(xmlDocument, settingsNode, SETTING_NODE_NAME,
-		L"EverythingMatchCase", XMLSettings::EncodeBoolValue(config.everythingSearchSettings.matchCase));
+		L"EverythingMatchCase",
+		XMLSettings::EncodeBoolValue(config.everythingSearchSettings.matchCase));
 	XMLSettings::WriteStandardSetting(xmlDocument, settingsNode, SETTING_NODE_NAME,
 		L"EverythingMatchWholeWord",
 		XMLSettings::EncodeBoolValue(config.everythingSearchSettings.matchWholeWord));
@@ -384,7 +386,11 @@ void SaveToNode(IXMLDOMDocument *xmlDocument, IXMLDOMElement *settingsNode, cons
 		L"EverythingIgnoreDiacritics",
 		XMLSettings::EncodeBoolValue(config.everythingSearchSettings.ignoreDiacritics));
 	XMLSettings::WriteStandardSetting(xmlDocument, settingsNode, SETTING_NODE_NAME,
-		L"EverythingMatchPath", XMLSettings::EncodeBoolValue(config.everythingSearchSettings.matchPath));
+		L"EverythingMatchPath",
+		XMLSettings::EncodeBoolValue(config.everythingSearchSettings.matchPath));
+	XMLSettings::WriteStandardSetting(xmlDocument, settingsNode, SETTING_NODE_NAME,
+		L"EverythingAlternateRowColors",
+		XMLSettings::EncodeBoolValue(config.everythingSearchSettings.alternateRowColors));
 	XMLSettings::WriteStandardSetting(xmlDocument, settingsNode, SETTING_NODE_NAME,
 		L"ExtendTabControl", XMLSettings::EncodeBoolValue(config.extendTabControl.get()));
 	XMLSettings::WriteStandardSetting(xmlDocument, settingsNode, SETTING_NODE_NAME, L"ForceSize",

@@ -22,6 +22,7 @@ struct EverythingSearchSettings
 	bool regularExpression = false;
 	bool ignoreDiacritics = true;
 	bool matchPath = false;
+	bool alternateRowColors = true;
 
 	bool operator==(const EverythingSearchSettings &) const = default;
 };

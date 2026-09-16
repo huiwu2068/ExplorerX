@@ -294,7 +294,9 @@ void Explorerplusplus::OnTabSelected(const Tab &tab)
 	UpdateWindowStates(tab);
 
 	UpdateLayout();
-	SetFocus(m_hActiveListView);
+	SetFocus(m_everythingSearchTabId && tab.GetId() == *m_everythingSearchTabId
+			? m_everythingSearchListView
+			: m_hActiveListView);
 }
 
 void Explorerplusplus::SetActivePane(BrowserPane *pane)
@@ -389,7 +391,13 @@ void Explorerplusplus::SetDualPaneEnabled(bool enabled)
 			for (const auto *tab : rightTabList)
 			{
 				PreservedTab preservedTab(*tab, leftTabs->GetNumTabs());
-				migratedTabs.push_back(&leftTabs->CreateNewTab(preservedTab));
+				Tab &migratedTab = leftTabs->CreateNewTab(preservedTab);
+				migratedTabs.push_back(&migratedTab);
+				if (m_everythingSearchTabId && tab->GetId() == *m_everythingSearchTabId)
+				{
+					m_everythingSearchTabContainer = leftTabs;
+					m_everythingSearchTabId = migratedTab.GetId();
+				}
 			}
 			rightTabs->CloseAllTabs();
 			ShowWindow(m_secondaryTabBacking->GetHWND(), SW_HIDE);
@@ -535,24 +543,23 @@ void Explorerplusplus::OnTabPreRemoval(const Tab &tab, int index)
 	UNREFERENCED_PARAMETER(index);
 
 	auto *tabContainer = tab.GetTabContainer();
-	if (m_config->dualPane && m_secondaryBrowserPane && GetLifecycleState() == LifecycleState::Main
+	const bool closingVisiblePane = tabContainer == m_browserPane->GetTabContainer()
+		|| (m_config->dualPane && m_secondaryBrowserPane
+			&& tabContainer == m_secondaryBrowserPane->GetTabContainer());
+	if (GetLifecycleState() == LifecycleState::Main && closingVisiblePane
 		&& tabContainer->GetNumTabs() == 1)
 	{
-		// A visible pane must always have a selected tab. Create its replacement before the old tab
-		// is removed so that observers never see an empty TabContainer. This is intentionally
-		// skipped while dual-pane mode is being disabled or the window is shutting down.
+		// A running window always keeps one usable tab. Create the replacement before removing the
+		// final tab so observers never see an empty TabContainer. Explicit window shutdown changes
+		// the lifecycle state first and therefore still closes every tab normally.
 		tabContainer->CreateNewTabInDefaultDirectory({ .selected = true });
 	}
 
-	// It's only necessary to begin shutdown if it hasn't already started. Shutdown will be started
-	// elsewhere if the user explicitly closes the window. So, it's only necessary to shutdown here
-	// if the user implicitly closes the window by closing the last tab.
-	const bool closingLastLeftTab = tab.GetTabContainer() == m_browserPane->GetTabContainer()
-		&& (!m_secondaryBrowserPane
-			|| m_secondaryBrowserPane->GetTabContainer()->GetNumTabs() == 0);
-	if (closingLastLeftTab && GetLifecycleState() == LifecycleState::Main)
+	if (m_everythingSearchTabId && tab.GetId() == *m_everythingSearchTabId)
 	{
-		BeginShutdown();
+		m_everythingSearchTabId.reset();
+		m_everythingSearchTabContainer = nullptr;
+		ShowWindow(m_everythingSearchListView, SW_HIDE);
 	}
 }
 
@@ -561,7 +568,7 @@ void Explorerplusplus::OnTabRemoved(const Tab &tab)
 	const bool allPanesEmpty = tab.GetTabContainer() == m_browserPane->GetTabContainer()
 		&& (!m_secondaryBrowserPane
 			|| m_secondaryBrowserPane->GetTabContainer()->GetNumTabs() == 0);
-	if (allPanesEmpty)
+	if (allPanesEmpty && GetLifecycleState() != LifecycleState::Main)
 	{
 		// The last tab has been closed, so the window should be closed as well. However, it's not
 		// possible to close the window within this listener. Firstly, because there could be other
