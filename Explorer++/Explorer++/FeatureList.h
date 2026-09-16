@@ -7,9 +7,9 @@
 #include "Feature.h"
 #include <set>
 
-// This class can be used to determine whether a particular in-development feature is enabled or
-// disabled. All the features managed here are disabled by default, but can be enabled with the
-// appropriate command line option.
+// This class can be used to determine whether a feature is enabled or disabled. Stable features may
+// be enabled by default, while in-development features can be enabled with the appropriate command
+// line option.
 class FeatureList
 {
 public:

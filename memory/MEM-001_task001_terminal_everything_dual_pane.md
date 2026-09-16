@@ -80,3 +80,4 @@ git diff --check
 - `LVS_OWNERDATA` 列表是 Holder 的子窗口，`WM_NOTIFY` 默认发给 Holder；主窗口处理器需要显式转发。
 - Everything 对同一回复窗口一次只可靠处理一个查询；分页请求要排队，不要并发覆盖。
 - 当前目录与正则组合继续明确拒绝，不能静默扩大为全局搜索。
+- TASK-001 验收完成后，`Feature::DualPane` 默认启用；用户无需启动参数即可从“View > Dual pane”切换。

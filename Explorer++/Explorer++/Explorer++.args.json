@@ -7,10 +7,6 @@
       "Command": "Features",
       "Items": [
         {
-          "Id": "39312888-138a-4a4c-ab13-357bbb4eb0cf",
-          "Command": "--enable-features DualPane"
-        },
-        {
           "Id": "43cf330b-d035-476a-862b-ece1829ee651",
           "Command": "--enable-features Plugins"
         },

@@ -6,16 +6,16 @@
 #include "FeatureList.h"
 #include <gtest/gtest.h>
 
-TEST(FeatureListTest, DisabledByDefault)
+TEST(FeatureListTest, Defaults)
 {
 	FeatureList featureList;
 	EXPECT_FALSE(featureList.IsEnabled(Feature::Plugins));
-	EXPECT_FALSE(featureList.IsEnabled(Feature::DualPane));
+	EXPECT_TRUE(featureList.IsEnabled(Feature::DualPane));
 }
 
 TEST(FeatureListTest, Enabled)
 {
 	FeatureList featureList({ Feature::Plugins });
 	EXPECT_TRUE(featureList.IsEnabled(Feature::Plugins));
-	EXPECT_FALSE(featureList.IsEnabled(Feature::DualPane));
+	EXPECT_TRUE(featureList.IsEnabled(Feature::DualPane));
 }

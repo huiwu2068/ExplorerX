@@ -1,5 +1,5 @@
 ---
-updated: 2026-09-16 09:15:00
+updated: 2026-09-16 09:31:01
 owner: lzh
 review_after_days: 14
 max_lines: 200
@@ -21,7 +21,7 @@ max_lines: 200
 ## 当前迭代焦点
 
 - TASK-001 已完成：Windows Terminal 工具栏、Everything 搜索窗格、左右双面板、跨面板复制/移动、默认详细列表和列宽继承均已实现并完成真实主窗口验收。
-- 双面板仍通过 `--enable-features DualPane` 开放；启动后使用“View > Dual pane”切换。
+- 双面板默认开放，无需启动参数；普通启动后使用“View > Dual pane”切换并持久化用户选择。
 - `AGENTS.md` 的“快速与轻量”原则继续有效，后续设计与实现必须优先保证响应、资源占用和最小依赖。
 
 ## 当前风险提示

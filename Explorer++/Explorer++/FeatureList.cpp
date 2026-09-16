@@ -6,8 +6,9 @@
 #include "FeatureList.h"
 
 FeatureList::FeatureList(const std::set<Feature> &featuresToEnable) :
-	m_enabledFeatures(featuresToEnable)
+	m_enabledFeatures({ Feature::DualPane })
 {
+	m_enabledFeatures.insert(featuresToEnable.begin(), featuresToEnable.end());
 }
 
 bool FeatureList::IsEnabled(Feature feature) const

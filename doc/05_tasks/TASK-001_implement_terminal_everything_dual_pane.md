@@ -1,7 +1,7 @@
 ---
 status: done
 created: 2026-09-12 20:59:40
-updated: 2026-09-16 09:15:00
+updated: 2026-09-16 09:31:01
 owner: lzh
 complexity: XL
 risk_level: high
@@ -230,6 +230,7 @@ git diff --check
 - 2026-09-15：Windows Terminal 1.24.11911.0 实际启动验证通过。测试目录包含中文、空格与 `&()^`，新建 `pwsh.exe` 的进程当前目录与请求目录完全一致。
 - 2026-09-16：Debug 测试共 821 项，其中排除系统剪贴板套件后的 815 项全部通过；完整运行的失败仅位于未改动的 `ClipboardTest`，重复运行会随系统剪贴板占用在 2～3 项之间波动。Debug/Release x64 Explorer++ 主程序构建通过；解决方案级 Release 仅因本机缺少 WiX Toolset 3.11 无法构建安装器。
 - 2026-09-16：Windows 应用控制接口仍未枚举出 Explorer++，因此没有使用截图式自动化；验收由直接启动真实 `Explorer++.exe`、枚举真实 HWND/控件并读取真实进程状态的端到端程序完成，不使用 mock 或独立回调窗口替代主窗口。
+- 2026-09-16：根据用户反馈，完成验收后的 `Feature::DualPane` 改为默认启用；普通启动即可通过“View > Dual pane”开启，不再要求 `--enable-features DualPane`。
 
 当前阻塞：
 

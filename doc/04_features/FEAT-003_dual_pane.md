@@ -2,8 +2,8 @@
 status: active
 owner: lzh
 created: 2026-09-12 20:28:05
-updated: 2026-09-16 09:15:00
-last_verified: 2026-09-16 09:15:00
+updated: 2026-09-16 09:31:01
+last_verified: 2026-09-16 09:31:01
 verified_commit: working-tree
 ---
 
@@ -32,6 +32,7 @@ verified_commit: working-tree
 | 日期 | 变更 |
 |---|---|
 | 2026-09-12 | 初始设计 |
+| 2026-09-16 | TASK-001 验收完成后默认开放双面板菜单，不再要求启动参数 |
 
 ## 2. 目标与非目标
 
@@ -210,9 +211,9 @@ XML 与注册表后端必须使用同一逻辑模型和同一默认值，并分�
 ### 4.6 Feature Flag 发布策略
 
 - 继续使用现有 `Feature::DualPane` 控制菜单可见性和功能创建。
-- 第一阶段仅供开发/测试开启，收集崩溃、会话恢复和命令目标问题。
-- 第二阶段默认开启 Feature Flag，但保留快速关闭能力。
-- 存储兼容、焦点、标签迁移和关键文件操作通过验收后，才考虑移除 Feature Flag。
+- 第一阶段仅供开发/测试开启，收集崩溃、会话恢复和命令目标问题；该阶段已完成。
+- 第二阶段默认启用 `Feature::DualPane`，普通启动即可在“视图 > 双面板”中切换。
+- 后续稳定版本可移除已经不再承担灰度作用的 Feature Flag，但不得改变 `Config::dualPane` 的用户状态语义。
 - `Config::dualPane` 表示用户窗口状态，`Feature::DualPane` 表示代码能力是否开放，两者不得混为一个开关。
 
 ## 5. 关键流程
