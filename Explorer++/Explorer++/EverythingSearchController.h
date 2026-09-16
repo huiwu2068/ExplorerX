@@ -5,6 +5,7 @@
 #pragma once
 
 #include "EverythingIpcClient.h"
+#include <deque>
 #include <functional>
 #include <optional>
 #include <unordered_map>
@@ -49,6 +50,7 @@ private:
 	};
 
 	bool SendPage(DWORD offset);
+	void SendNextQueuedPage();
 
 	QueryFunction m_queryFunction;
 	std::uint64_t m_generation = 0;
@@ -57,6 +59,8 @@ private:
 	std::optional<EverythingQuery> m_activeQuery;
 	std::unordered_map<DWORD, RequestContext> m_requests;
 	std::unordered_set<DWORD> m_pendingOffsets;
+	std::deque<DWORD> m_queuedOffsets;
+	std::unordered_set<DWORD> m_queuedOffsetSet;
 	std::unordered_set<DWORD> m_loadedOffsets;
 	ResultsCallback m_resultsCallback;
 	ErrorCallback m_errorCallback;

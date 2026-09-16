@@ -1,9 +1,9 @@
 ---
-status: draft
+status: active
 owner: lzh
 created: 2026-09-12 20:28:05
-updated: 2026-09-12 20:28:05
-last_verified: 2026-09-12 20:28:05
+updated: 2026-09-16 09:15:00
+last_verified: 2026-09-16 09:15:00
 verified_commit: working-tree
 ---
 
@@ -340,4 +340,3 @@ Everything 查询完成并显示结果
 
 - [FEAT-001：Windows Terminal 工具栏](FEAT-001_windows_terminal_toolbar.md)
 - [FEAT-002：Everything 搜索窗格](FEAT-002_everything_search_pane.md)
-

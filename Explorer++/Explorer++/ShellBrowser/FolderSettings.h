@@ -63,7 +63,7 @@ struct FolderSettings
 {
 	SortMode sortMode = SortMode::Name;
 	SortMode groupMode = SortMode::Name;
-	ViewMode viewMode = ViewMode::Icons;
+	ViewMode viewMode = ViewMode::Details;
 	bool autoArrangeEnabled = true;
 	SortDirection sortDirection = SortDirection::Ascending;
 	SortDirection groupSortDirection = SortDirection::Ascending;

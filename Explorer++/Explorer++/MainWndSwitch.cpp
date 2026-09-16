@@ -99,6 +99,12 @@ LRESULT Explorerplusplus::WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam, LP
 	break;
 
 	case WM_TIMER:
+		if (wParam == EVERYTHING_SEARCH_DEBOUNCE_TIMER_ID)
+		{
+			KillTimer(m_hwnd, EVERYTHING_SEARCH_DEBOUNCE_TIMER_ID);
+			SubmitEverythingSearch();
+			return 0;
+		}
 		if (wParam == EVERYTHING_SEARCH_TIMER_ID)
 		{
 			KillTimer(m_hwnd, EVERYTHING_SEARCH_TIMER_ID);
@@ -246,15 +252,31 @@ LRESULT Explorerplusplus::WindowProcedure(HWND hwnd, UINT msg, WPARAM wParam, LP
 
 LRESULT Explorerplusplus::CommandHandler(HWND hwnd, HWND control, UINT id, UINT notificationCode)
 {
+	if (id == EVERYTHING_SEARCH_EDIT_ID && notificationCode == EN_CHANGE)
+	{
+		// Match Everything's immediate-search feel without issuing an IPC request for every key.
+		if (GetWindowTextLength(m_everythingSearchEdit) > 0)
+		{
+			SetTimer(m_hwnd, EVERYTHING_SEARCH_DEBOUNCE_TIMER_ID, 150, nullptr);
+		}
+		else
+		{
+			KillTimer(m_hwnd, EVERYTHING_SEARCH_DEBOUNCE_TIMER_ID);
+		}
+		return 0;
+	}
+
 	if ((id == EVERYTHING_SEARCH_BUTTON_ID || id == EVERYTHING_SEARCH_CLEAR_BUTTON_ID)
 		&& notificationCode == BN_CLICKED)
 	{
 		if (id == EVERYTHING_SEARCH_BUTTON_ID)
 		{
+			KillTimer(m_hwnd, EVERYTHING_SEARCH_DEBOUNCE_TIMER_ID);
 			SubmitEverythingSearch();
 		}
 		else if (id == EVERYTHING_SEARCH_CLEAR_BUTTON_ID)
 		{
+			KillTimer(m_hwnd, EVERYTHING_SEARCH_DEBOUNCE_TIMER_ID);
 			SetWindowText(m_everythingSearchEdit, L"");
 			SetFocus(m_everythingSearchEdit);
 		}

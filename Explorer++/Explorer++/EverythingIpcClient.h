@@ -37,11 +37,17 @@ public:
 	static constexpr DWORD REQUEST_DATE_MODIFIED = 0x00000040;
 	static constexpr DWORD SORT_NAME_ASCENDING = 1;
 
-	// Sends asynchronously using SendMessageCallback. A false return means that Everything is not
-	// running or did not accept the request; this method never waits for a search result.
+	// Uses an ordered background delivery sequence. A false return means that Everything isn't
+	// running; this method never waits for a search result on the UI thread.
 	bool Query(HWND replyWindow, DWORD replyCopyDataMessage, const EverythingQuery &query,
 		DWORD offset = 0, DWORD maximumResults = 500) const;
 
 	// Parses one untrusted QUERY2 reply. It accepts only the request fields that Query() asks for.
 	static bool ParseReply(std::span<const std::byte> data, EverythingIpcReply &reply);
+
+protected:
+	// Kept separate from delivery so protocol layout can be validated without communicating with
+	// an external process.
+	static std::vector<std::byte> BuildQueryPayload(HWND replyWindow, DWORD replyCopyDataMessage,
+		const EverythingQuery &query, DWORD offset, DWORD maximumResults);
 };

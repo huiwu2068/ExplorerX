@@ -76,8 +76,8 @@ std::wstring FormatEverythingModifiedTime(const FILETIME &utcFileTime)
 	if (GetDateFormatEx(LOCALE_NAME_USER_DEFAULT, DATE_SHORTDATE, &localSystemTime, nullptr, date,
 			static_cast<int>(std::size(date)), nullptr)
 		== 0
-		|| GetTimeFormatEx(LOCALE_NAME_USER_DEFAULT, TIME_NOSECONDS, &localSystemTime, nullptr, time,
-			static_cast<int>(std::size(time)))
+		|| GetTimeFormatEx(LOCALE_NAME_USER_DEFAULT, TIME_NOSECONDS, &localSystemTime, nullptr,
+			   time, static_cast<int>(std::size(time)))
 			== 0)
 	{
 		return {};
@@ -106,6 +106,8 @@ bool Explorerplusplus::OnEverythingCopyData(const COPYDATASTRUCT *copyData)
 		copyData->cbData);
 	const DWORD messageId = static_cast<DWORD>(copyData->dwData);
 	const bool expectedReply = m_everythingSearchController.IsPendingReply(messageId);
+	LOG(INFO) << "Explorer++ main window received Everything IPC data: reply_id=" << messageId
+			  << ", bytes=" << copyData->cbData << ", expected=" << expectedReply;
 	const bool handled = m_everythingSearchController.HandleCopyData(messageId, data);
 	if (expectedReply && !handled)
 	{
@@ -124,26 +126,46 @@ void Explorerplusplus::CreateEverythingSearchPane()
 		WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, L"Close Everything results", m_config,
 		m_resourceLoader, m_appServices->GetDarkModeManager(),
 		m_appServices->GetDarkModeColorProvider(), HolderWindow::ResizeEdge::Left);
-	m_everythingSearchHolder->SetCloseButtonClickedCallback([this]()
+	m_everythingSearchHolder->SetCloseButtonClickedCallback(
+		[this]()
 		{
 			m_everythingSearchPaneVisible = false;
 			UpdateLayout();
 		});
-	m_everythingSearchHolder->SetResizedCallback([this](int width)
+	m_everythingSearchHolder->SetResizedCallback(
+		[this](int width)
 		{
-			m_everythingSearchPaneWidth = std::max(width, 260);
+			const int minimumWidth = DpiCompatibility::GetInstance().ScaleValue(m_hwnd, 260);
+			m_everythingSearchPaneWidth = std::max(width, minimumWidth);
 			UpdateLayout();
 		});
 
-	m_everythingSearchListView = CreateWindow(WC_LISTVIEW, L"", WS_CHILD | WS_VISIBLE | LVS_REPORT
-		| LVS_OWNERDATA | LVS_SHOWSELALWAYS, 0, 0, 0, 0, m_everythingSearchHolder->GetHWND(),
-		nullptr, GetModuleHandle(nullptr), nullptr);
-	ListView_SetExtendedListViewStyle(m_everythingSearchListView, LVS_EX_FULLROWSELECT
-		| LVS_EX_DOUBLEBUFFER | LVS_EX_LABELTIP);
-	for (const auto &[text, width] : std::to_array<std::pair<const wchar_t *, int>>({
-			{ L"Name", 140 }, { L"Path", 180 }, { L"Size", 80 }, { L"Modified", 130 } }))
+	m_everythingSearchListView = CreateWindow(WC_LISTVIEW, L"",
+		WS_CHILD | WS_VISIBLE | LVS_REPORT | LVS_OWNERDATA | LVS_SHOWSELALWAYS, 0, 0, 0, 0,
+		m_everythingSearchHolder->GetHWND(), nullptr, GetModuleHandle(nullptr), nullptr);
+	// List-view notifications are delivered to the immediate parent (the Holder window), while the
+	// existing notification dispatcher belongs to the Explorer++ main window. Forward only this
+	// result list's notifications so virtual text, cache hints and activation follow the real
+	// route.
+	m_windowSubclasses.push_back(std::make_unique<WindowSubclass>(
+		m_everythingSearchHolder->GetHWND(),
+		[this](HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+		{
+			if (msg == WM_NOTIFY
+				&& reinterpret_cast<const NMHDR *>(lParam)->hwndFrom == m_everythingSearchListView)
+			{
+				return SendMessage(m_hwnd, msg, wParam, lParam);
+			}
+			return DefSubclassProc(hwnd, msg, wParam, lParam);
+		}));
+	ListView_SetExtendedListViewStyle(m_everythingSearchListView,
+		LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_LABELTIP);
+	auto &dpiCompatibility = DpiCompatibility::GetInstance();
+	for (const auto &[text, width] : std::to_array<std::pair<const wchar_t *, int>>(
+			 { { L"Name", 140 }, { L"Path", 180 }, { L"Size", 80 }, { L"Modified", 130 } }))
 	{
-		LVCOLUMN column{ .mask = LVCF_TEXT | LVCF_WIDTH, .cx = width,
+		LVCOLUMN column{ .mask = LVCF_TEXT | LVCF_WIDTH,
+			.cx = dpiCompatibility.ScaleValue(m_hwnd, width),
 			.pszText = const_cast<wchar_t *>(text) };
 		ListView_InsertColumn(m_everythingSearchListView,
 			Header_GetItemCount(ListView_GetHeader(m_everythingSearchListView)), &column);
@@ -153,6 +175,9 @@ void Explorerplusplus::CreateEverythingSearchPane()
 
 void Explorerplusplus::OnEverythingSearchResults(const EverythingIpcReply &reply)
 {
+	LOG(INFO) << "Everything results reached the main-window result callback: offset="
+			  << reply.offset << ", page_items=" << reply.results.size()
+			  << ", total_items=" << reply.totalResults;
 	constexpr size_t MAX_RESULTS = 100000;
 	if (reply.offset == 0)
 	{
@@ -164,10 +189,9 @@ void Explorerplusplus::OnEverythingSearchResults(const EverythingIpcReply &reply
 
 	if (reply.offset < m_everythingSearchResults.size())
 	{
-		const size_t count = std::min(reply.results.size(),
-			m_everythingSearchResults.size() - reply.offset);
-		std::copy_n(reply.results.begin(), count,
-			m_everythingSearchResults.begin() + reply.offset);
+		const size_t count =
+			std::min(reply.results.size(), m_everythingSearchResults.size() - reply.offset);
+		std::copy_n(reply.results.begin(), count, m_everythingSearchResults.begin() + reply.offset);
 	}
 	m_everythingSearchPaneVisible = true;
 	SetWindowText(m_everythingSearchHolder->GetHWND(),
@@ -188,7 +212,8 @@ void Explorerplusplus::OnEverythingListCacheHint(const NMLVCACHEHINT *cacheHint)
 
 	constexpr DWORD PAGE_SIZE = 500;
 	const DWORD firstPage = static_cast<DWORD>(cacheHint->iFrom) / PAGE_SIZE;
-	const DWORD lastPage = static_cast<DWORD>(std::max(cacheHint->iFrom, cacheHint->iTo)) / PAGE_SIZE;
+	const DWORD lastPage =
+		static_cast<DWORD>(std::max(cacheHint->iFrom, cacheHint->iTo)) / PAGE_SIZE;
 	for (DWORD page = firstPage; page <= lastPage; ++page)
 	{
 		m_everythingSearchController.RequestPage(page * PAGE_SIZE);
@@ -203,10 +228,12 @@ void Explorerplusplus::OnEverythingQueryError(EverythingQueryError error)
 		ShowEverythingSearchError(L"Enter a search expression.");
 		break;
 	case EverythingQueryError::CurrentFolderUnavailable:
-		ShowEverythingSearchError(L"The active pane is not a file-system folder. Choose global search.");
+		ShowEverythingSearchError(
+			L"The active pane is not a file-system folder. Choose global search.");
 		break;
 	case EverythingQueryError::UnsupportedCurrentFolderRegex:
-		ShowEverythingSearchError(L"Current-folder search cannot be combined with regular expressions.");
+		ShowEverythingSearchError(
+			L"Current-folder search cannot be combined with regular expressions.");
 		break;
 	}
 }
@@ -230,15 +257,26 @@ void Explorerplusplus::SubmitEverythingSearch()
 	{
 		currentFolder = m_pActiveShellBrowser->GetDirectoryPath();
 	}
+	LOG(INFO) << "Submitting Everything query from main window: scope="
+			  << (m_config->everythingSearchSettings.scope == EverythingSearchScope::Global
+						 ? "global"
+						 : "current_folder")
+			  << ", current_folder_available=" << currentFolder.has_value()
+			  << ", current_folder_length=" << (currentFolder ? currentFolder->size() : 0);
 
-	auto result = m_everythingSearchController.Submit(m_hwnd, expression,
-		m_config->everythingSearchSettings, currentFolder);
-	if (result == EverythingSearchController::SubmitResult::Submitted)
-	{
+	// Everything can reply before Submit() returns. Establish the visible pending state and timeout
+	// first, so a fast result callback can clear them without this method overwriting the result
+	// title or starting a stale timeout afterwards.
 		m_everythingSearchPaneVisible = true;
 		SetWindowText(m_everythingSearchHolder->GetHWND(), L"Everything search in progress…");
 		SetTimer(m_hwnd, EVERYTHING_SEARCH_TIMER_ID, EVERYTHING_SEARCH_TIMEOUT, nullptr);
 		UpdateLayout();
+
+	auto result = m_everythingSearchController.Submit(m_hwnd, expression,
+		m_config->everythingSearchSettings, currentFolder);
+	if (result != EverythingSearchController::SubmitResult::Submitted)
+	{
+		KillTimer(m_hwnd, EVERYTHING_SEARCH_TIMER_ID);
 	}
 	if (result == EverythingSearchController::SubmitResult::EverythingUnavailable)
 	{
@@ -265,9 +303,10 @@ void Explorerplusplus::OnEverythingListGetDisplayInfo(NMLVDISPINFOW *displayInfo
 		return;
 	}
 	const auto separator = result.fullPath.find_last_of(L"\\/");
-	const std::wstring name = separator == std::wstring::npos ? result.fullPath
-		: result.fullPath.substr(separator + 1);
-	const std::wstring path = separator == std::wstring::npos ? std::wstring() : result.fullPath.substr(0, separator);
+	const std::wstring name =
+		separator == std::wstring::npos ? result.fullPath : result.fullPath.substr(separator + 1);
+	const std::wstring path =
+		separator == std::wstring::npos ? std::wstring() : result.fullPath.substr(0, separator);
 	const std::wstring size = result.isFolder ? std::wstring() : std::to_wstring(result.size);
 	const std::array<std::wstring, 4> fields = { name, path, size,
 		FormatEverythingModifiedTime(result.dateModified) };
@@ -318,8 +357,8 @@ void Explorerplusplus::ActivateEverythingSearchResult(bool openFileDirectly)
 	}
 
 	auto navigateParams = NavigateParams::Normal(parentPidl.get());
-	Tab &newTab = GetActivePane()->GetTabContainer()->CreateNewTab(navigateParams,
-		{ .selected = true });
+	Tab &newTab =
+		GetActivePane()->GetTabContainer()->CreateNewTab(navigateParams, { .selected = true });
 	if (ArePidlsEquivalent(newTab.GetShellBrowser()->GetDirectory().Raw(), parentPidl.get()))
 	{
 		newTab.GetShellBrowserImpl()->SelectItems({ fullPidl.get() });
@@ -619,13 +658,12 @@ void Explorerplusplus::UpdateLayout()
 
 	const int minimumEverythingPaneWidth = dpiCompatibility.ScaleValue(m_hwnd, 260);
 	const int minimumFileWorkspaceWidth = m_config->dualPane && m_secondaryBrowserPane
-		? 2 * dpiCompatibility.ScaleValue(m_hwnd, 240)
-			+ dpiCompatibility.ScaleValue(m_hwnd, 6)
+		? 2 * dpiCompatibility.ScaleValue(m_hwnd, 240) + dpiCompatibility.ScaleValue(m_hwnd, 6)
 		: dpiCompatibility.ScaleValue(m_hwnd, 320);
 	const int maximumEverythingPaneWidth =
 		std::max(0, mainWindowWidth - indentLeft - indentRight - minimumFileWorkspaceWidth);
-	const int everythingPaneWidth = m_everythingSearchPaneVisible
-		&& maximumEverythingPaneWidth >= minimumEverythingPaneWidth
+	const int everythingPaneWidth =
+		m_everythingSearchPaneVisible && maximumEverythingPaneWidth >= minimumEverythingPaneWidth
 		? std::min(std::max(m_everythingSearchPaneWidth, minimumEverythingPaneWidth),
 			maximumEverythingPaneWidth)
 		: 0;
@@ -682,12 +720,12 @@ void Explorerplusplus::UpdateLayout()
 		const int splitterWidth = dpiCompatibility.ScaleValue(m_hwnd, 6);
 		const int paneContentWidth = std::max(0, availableWidth - splitterWidth);
 		const int minimumPaneWidth = dpiCompatibility.ScaleValue(m_hwnd, 240);
-		int firstPaneWidth = static_cast<int>(std::lround(paneContentWidth
-			* std::clamp(m_config->dualPaneSplitRatio, 2000, 8000) / 10000.0));
+		int firstPaneWidth = static_cast<int>(std::lround(
+			paneContentWidth * std::clamp(m_config->dualPaneSplitRatio, 2000, 8000) / 10000.0));
 		if (paneContentWidth >= 2 * minimumPaneWidth)
 		{
-			firstPaneWidth = std::clamp(firstPaneWidth, minimumPaneWidth,
-				paneContentWidth - minimumPaneWidth);
+			firstPaneWidth =
+				std::clamp(firstPaneWidth, minimumPaneWidth, paneContentWidth - minimumPaneWidth);
 		}
 		else
 		{
@@ -696,8 +734,8 @@ void Explorerplusplus::UpdateLayout()
 		const int secondPaneWidth = paneContentWidth - firstPaneWidth;
 		m_dualPaneWorkspaceLeft = indentLeft;
 		m_dualPaneWorkspaceWidth = paneContentWidth;
-		const int holderTop = (m_config->extendTabControl.get() && !m_config->showTabBarAtBottom.get())
-			? indentTop
+		const int holderTop =
+			(m_config->extendTabControl.get() && !m_config->showTabBarAtBottom.get()) ? indentTop
 			: indentRebar;
 		int holderHeight = mainWindowHeight - indentBottom - holderTop;
 		if (m_config->extendTabControl.get() && m_config->showTabBarAtBottom.get() && m_bShowTabBar)
@@ -705,16 +743,17 @@ void Explorerplusplus::UpdateLayout()
 			holderHeight -= tabWindowHeight;
 		}
 
-		SetWindowPos(m_treeViewHolder->GetHWND(), nullptr, 0, holderTop, m_treeViewWidth, holderHeight,
+		SetWindowPos(m_treeViewHolder->GetHWND(), nullptr, 0, holderTop, m_treeViewWidth,
+			holderHeight,
 			(m_config->showFolders.get() ? SWP_SHOWWINDOW : SWP_HIDEWINDOW) | SWP_NOZORDER);
 
 		UINT displayWindowShowFlags =
 			(m_config->showDisplayWindow.get() ? SWP_SHOWWINDOW : SWP_HIDEWINDOW) | SWP_NOZORDER;
 		if (m_config->displayWindowVertical)
 		{
-			SetWindowPos(m_displayWindow->GetHWND(), nullptr, mainWindowWidth - m_displayWindowWidth,
-				indentRebar, m_displayWindowWidth, mainWindowHeight - indentRebar - indentBottom,
-				displayWindowShowFlags);
+			SetWindowPos(m_displayWindow->GetHWND(), nullptr,
+				mainWindowWidth - m_displayWindowWidth, indentRebar, m_displayWindowWidth,
+				mainWindowHeight - indentRebar - indentBottom, displayWindowShowFlags);
 		}
 		else
 		{
@@ -739,17 +778,16 @@ void Explorerplusplus::UpdateLayout()
 		auto layoutPane = [&](BrowserPane *pane, TabBacking *backing, int left, int width)
 		{
 			UINT tabShowFlags = (m_bShowTabBar ? SWP_SHOWWINDOW : SWP_HIDEWINDOW) | SWP_NOZORDER;
-			SetWindowPos(backing->GetHWND(), nullptr, left, tabTop, width, tabWindowHeight, tabShowFlags);
+			SetWindowPos(backing->GetHWND(), nullptr, left, tabTop, width, tabWindowHeight,
+				tabShowFlags);
 			SetWindowPos(pane->GetTabContainer()->GetHWND(), nullptr, 0, 0, std::max(0, width - 25),
 				tabWindowHeight, SWP_SHOWWINDOW | SWP_NOZORDER);
 
 			for (auto &tab : pane->GetTabContainer()->GetAllTabs() | boost::adaptors::map_values)
 			{
-				UINT listViewShowFlags = SWP_NOZORDER;
-				if (pane->GetTabContainer()->IsTabSelected(*tab))
-				{
-					listViewShowFlags |= SWP_SHOWWINDOW;
-				}
+				const UINT listViewShowFlags = SWP_NOZORDER
+					| (pane->GetTabContainer()->IsTabSelected(*tab) ? SWP_SHOWWINDOW
+																	: SWP_HIDEWINDOW);
 				SetWindowPos(tab->GetShellBrowserImpl()->GetListView(), nullptr, left, listViewTop,
 					width, listViewHeight, listViewShowFlags);
 			}
@@ -764,7 +802,8 @@ void Explorerplusplus::UpdateLayout()
 	}
 
 	/* If we're showing the tab bar at the bottom of the listview,
-	the only thing that will change is the top coordinate. */
+	the only thing that will change
+	 * is the top coordinate. */
 	SetWindowPos(m_tabBacking->GetHWND(), nullptr, tabBackingLeft, tabTop, tabBackingWidth,
 		tabWindowHeight, showFlags);
 
@@ -826,12 +865,8 @@ void Explorerplusplus::UpdateLayout()
 
 	for (auto &tab : GetActivePane()->GetTabContainer()->GetAllTabs() | boost::adaptors::map_values)
 	{
-		showFlags = SWP_NOZORDER;
-
-		if (GetActivePane()->GetTabContainer()->IsTabSelected(*tab))
-		{
-			showFlags |= SWP_SHOWWINDOW;
-		}
+		const bool isSelected = GetActivePane()->GetTabContainer()->IsTabSelected(*tab);
+		showFlags = SWP_NOZORDER | (isSelected ? SWP_SHOWWINDOW : SWP_HIDEWINDOW);
 
 		int width = mainWindowWidth - indentLeft - indentRight;
 		int height = mainWindowHeight - indentBottom - indentTop;

@@ -1056,6 +1056,49 @@ void ShellBrowserImpl::OnListViewHeaderItemChanged(const NMHEADER *changeInfo)
 
 	auto &targetColumn = view.front();
 	targetColumn.width = changeInfo->pitem->cxy;
+
+	// New tabs receive their initial column set from the global defaults. Mirror only the explicit
+	// width change there; column visibility/order remain local to the current tab.
+	auto &defaultColumns = m_config->globalFolderSettings.folderColumns;
+	std::vector<Column_t> *defaultColumnSet = nullptr;
+	if (m_pActiveColumns == &m_folderColumns.realFolderColumns)
+	{
+		defaultColumnSet = &defaultColumns.realFolderColumns;
+	}
+	else if (m_pActiveColumns == &m_folderColumns.myComputerColumns)
+	{
+		defaultColumnSet = &defaultColumns.myComputerColumns;
+	}
+	else if (m_pActiveColumns == &m_folderColumns.controlPanelColumns)
+	{
+		defaultColumnSet = &defaultColumns.controlPanelColumns;
+	}
+	else if (m_pActiveColumns == &m_folderColumns.recycleBinColumns)
+	{
+		defaultColumnSet = &defaultColumns.recycleBinColumns;
+	}
+	else if (m_pActiveColumns == &m_folderColumns.printersColumns)
+	{
+		defaultColumnSet = &defaultColumns.printersColumns;
+	}
+	else if (m_pActiveColumns == &m_folderColumns.networkConnectionsColumns)
+	{
+		defaultColumnSet = &defaultColumns.networkConnectionsColumns;
+	}
+	else if (m_pActiveColumns == &m_folderColumns.myNetworkPlacesColumns)
+	{
+		defaultColumnSet = &defaultColumns.myNetworkPlacesColumns;
+	}
+
+	if (defaultColumnSet)
+	{
+		auto defaultColumn = std::ranges::find_if(*defaultColumnSet,
+			[&targetColumn](const Column_t &column) { return column.type == targetColumn.type; });
+		if (defaultColumn != defaultColumnSet->end())
+		{
+			defaultColumn->width = targetColumn.width;
+		}
+	}
 }
 
 void ShellBrowserImpl::OnListViewHeaderEndDrag(const NMHEADER *changeInfo)

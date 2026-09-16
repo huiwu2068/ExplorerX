@@ -4,8 +4,12 @@
 
 #include "stdafx.h"
 #include "EverythingIpcClient.h"
+#include <atomic>
+#include <condition_variable>
 #include <limits>
 #include <memory>
+#include <mutex>
+#include <thread>
 
 namespace
 {
@@ -56,9 +60,20 @@ struct PendingQuery
 	COPYDATASTRUCT copyData = {};
 };
 
-void CALLBACK OnQueryDelivered(HWND, UINT, ULONG_PTR data, LRESULT)
+struct DeliverySequence
 {
-	delete reinterpret_cast<PendingQuery *>(data);
+	std::atomic_uint64_t nextIssued = 0;
+	std::uint64_t nextToDeliver = 0;
+	std::mutex mutex;
+	std::condition_variable condition;
+};
+
+DeliverySequence &GetDeliverySequence()
+{
+	// Deliberately process-lifetime storage: detached deliveries may still be unwinding while
+	// static destructors run during shutdown.
+	static auto *sequence = new DeliverySequence;
+	return *sequence;
 }
 
 bool IsRangeValid(size_t offset, size_t size, size_t total)
@@ -147,8 +162,62 @@ bool EverythingIpcClient::Query(HWND replyWindow, DWORD replyCopyDataMessage,
 	}
 
 	auto pendingQuery = std::make_unique<PendingQuery>();
+	pendingQuery->bytes =
+		BuildQueryPayload(replyWindow, replyCopyDataMessage, query, offset, maximumResults);
+	if (pendingQuery->bytes.empty())
+	{
+		return false;
+	}
+
+	pendingQuery->copyData.dwData = COPYDATA_QUERY2;
+	pendingQuery->copyData.cbData = static_cast<DWORD>(pendingQuery->bytes.size());
+	pendingQuery->copyData.lpData = pendingQuery->bytes.data();
+
+	auto &sequence = GetDeliverySequence();
+	const auto ticket = sequence.nextIssued.fetch_add(1, std::memory_order_relaxed);
+	std::thread(
+		[everythingWindow, replyWindow, ticket, pendingQuery = std::move(pendingQuery)]()
+	{
+			auto &deliverySequence = GetDeliverySequence();
+			{
+				std::unique_lock lock(deliverySequence.mutex);
+				deliverySequence.condition.wait(lock, [&deliverySequence, ticket]
+					{ return deliverySequence.nextToDeliver == ticket; });
+	}
+
+			if (IsWindow(everythingWindow) && IsWindow(replyWindow))
+			{
+				DWORD_PTR ignored = 0;
+				SendMessageTimeout(everythingWindow, WM_COPYDATA,
+					reinterpret_cast<WPARAM>(replyWindow),
+					reinterpret_cast<LPARAM>(&pendingQuery->copyData), SMTO_ABORTIFHUNG, 5000,
+					&ignored);
+			}
+
+			{
+				std::lock_guard lock(deliverySequence.mutex);
+				++deliverySequence.nextToDeliver;
+			}
+			deliverySequence.condition.notify_all();
+		})
+		.detach();
+
+	return true;
+}
+
+std::vector<std::byte> EverythingIpcClient::BuildQueryPayload(HWND replyWindow,
+	DWORD replyCopyDataMessage, const EverythingQuery &query, DWORD offset, DWORD maximumResults)
+{
+	if (query.expression.size()
+		> (std::numeric_limits<DWORD>::max() - sizeof(Query2Header)) / sizeof(wchar_t) - 1)
+	{
+		return {};
+	}
+
 	const size_t searchBytes = (query.expression.size() + 1) * sizeof(wchar_t);
-	pendingQuery->bytes.resize(sizeof(Query2Header) + searchBytes);
+	std::vector<std::byte> payload(sizeof(Query2Header) + searchBytes);
+	// Keep this field order in lockstep with EVERYTHING_IPC_QUERY2 from the official SDK. The
+	// structure is packed because it is copied verbatim to the external Everything process.
 	Query2Header header{ .replyWindow = static_cast<DWORD>(reinterpret_cast<UINT_PTR>(replyWindow)),
 		.replyCopyDataMessage = replyCopyDataMessage,
 		.searchFlags = BuildSearchFlags(query.settings),
@@ -156,29 +225,17 @@ bool EverythingIpcClient::Query(HWND replyWindow, DWORD replyCopyDataMessage,
 		.maximumResults = maximumResults,
 		.requestFlags = REQUEST_FULL_PATH_AND_NAME | REQUEST_SIZE | REQUEST_DATE_MODIFIED,
 		.sortType = SORT_NAME_ASCENDING };
-	memcpy(pendingQuery->bytes.data(), &header, sizeof(header));
-	memcpy(pendingQuery->bytes.data() + sizeof(header), query.expression.c_str(), searchBytes);
-	pendingQuery->copyData.dwData = COPYDATA_QUERY2;
-	pendingQuery->copyData.cbData = static_cast<DWORD>(pendingQuery->bytes.size());
-	pendingQuery->copyData.lpData = pendingQuery->bytes.data();
-
-	PendingQuery *rawQuery = pendingQuery.release();
-	if (!SendMessageCallback(everythingWindow, WM_COPYDATA, reinterpret_cast<WPARAM>(replyWindow),
-		reinterpret_cast<LPARAM>(&rawQuery->copyData), OnQueryDelivered,
-		reinterpret_cast<ULONG_PTR>(rawQuery)))
-	{
-		delete rawQuery;
-		return false;
-	}
-
-	return true;
+	memcpy(payload.data(), &header, sizeof(header));
+	memcpy(payload.data() + sizeof(header), query.expression.c_str(), searchBytes);
+	return payload;
 }
 
 bool EverythingIpcClient::ParseReply(std::span<const std::byte> data, EverythingIpcReply &reply)
 {
 	List2Header header;
 	if (!ReadValue(data, 0, header)
-		|| header.requestFlags != (REQUEST_FULL_PATH_AND_NAME | REQUEST_SIZE | REQUEST_DATE_MODIFIED))
+		|| header.requestFlags
+			!= (REQUEST_FULL_PATH_AND_NAME | REQUEST_SIZE | REQUEST_DATE_MODIFIED))
 	{
 		return false;
 	}
@@ -195,7 +252,8 @@ bool EverythingIpcClient::ParseReply(std::span<const std::byte> data, Everything
 	for (DWORD index = 0; index < header.numItems; ++index)
 	{
 		Item2Header item;
-		if (!ReadValue(data, sizeof(List2Header) + static_cast<size_t>(index) * sizeof(Item2Header), item))
+		if (!ReadValue(data, sizeof(List2Header) + static_cast<size_t>(index) * sizeof(Item2Header),
+				item))
 		{
 			return false;
 		}

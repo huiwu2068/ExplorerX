@@ -32,6 +32,17 @@ protected:
 	BrowserCommandController m_commandController;
 };
 
+TEST(BrowserCommandControllerStaticTest, QuotesWindowsTerminalDirectoryAsOneArgument)
+{
+	EXPECT_EQ(
+		BrowserCommandController::BuildWindowsTerminalParameters(L"C:\\普通目录 &()^\\folder"),
+		L"-d \"C:\\普通目录 &()^\\folder\"");
+	EXPECT_EQ(BrowserCommandController::BuildWindowsTerminalParameters(L"C:\\trailing\\"),
+		L"-d \"C:\\trailing\\\\\"");
+	EXPECT_EQ(BrowserCommandController::BuildWindowsTerminalParameters(L"C:\\a\"b"),
+		L"-d \"C:\\a\\\"b\"");
+}
+
 TEST_F(BrowserCommandControllerTest, SortBy)
 {
 	m_commandController.ExecuteCommand(IDM_SORTBY_ATTRIBUTES);

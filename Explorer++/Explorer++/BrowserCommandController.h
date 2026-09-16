@@ -10,6 +10,8 @@
 #include "../Helper/ShellHelper.h"
 #include <boost/core/noncopyable.hpp>
 #include <optional>
+#include <string>
+#include <string_view>
 
 class AppServices;
 class BrowserWindow;
@@ -20,6 +22,7 @@ class BrowserCommandController : private boost::noncopyable
 {
 public:
 	BrowserCommandController(BrowserWindow *browser, AppServices *appServices);
+	static std::wstring BuildWindowsTerminalParameters(std::wstring_view directory);
 
 	bool IsCommandEnabled(int command) const;
 	void ExecuteCommand(int command,

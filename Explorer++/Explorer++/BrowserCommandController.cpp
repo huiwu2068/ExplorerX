@@ -97,6 +97,11 @@ BrowserCommandController::BrowserCommandController(BrowserWindow *browser,
 {
 }
 
+std::wstring BrowserCommandController::BuildWindowsTerminalParameters(std::wstring_view directory)
+{
+	return L"-d "s + QuoteCommandLineArgument(std::wstring(directory));
+}
+
 bool BrowserCommandController::IsCommandEnabled(int command) const
 {
 	if (IsCommandContextSensitive(command))
@@ -645,15 +650,15 @@ void BrowserCommandController::StartWindowsTerminal()
 	const auto *shellBrowser = GetActiveShellBrowser();
 
 	wil::unique_cotaskmem_string directoryPath;
-	HRESULT hr = SHGetNameFromIDList(shellBrowser->GetDirectory().Raw(), SIGDN_FILESYSPATH,
-		&directoryPath);
+	HRESULT hr =
+		SHGetNameFromIDList(shellBrowser->GetDirectory().Raw(), SIGDN_FILESYSPATH, &directoryPath);
 
 	if (FAILED(hr))
 	{
 		return;
 	}
 
-	std::wstring parameters = L"-d "s + QuoteCommandLineArgument(directoryPath.get());
+	std::wstring parameters = BuildWindowsTerminalParameters(directoryPath.get());
 
 	if (!LaunchProcess(nullptr, L"wt.exe", parameters, directoryPath.get(),
 		LaunchProcessFlags::None))

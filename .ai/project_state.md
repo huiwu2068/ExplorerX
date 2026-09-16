@@ -1,5 +1,5 @@
 ---
-updated: 2026-09-12 21:34:30
+updated: 2026-09-16 09:15:00
 owner: lzh
 review_after_days: 14
 max_lines: 200
@@ -20,24 +20,21 @@ max_lines: 200
 
 ## 当前迭代焦点
 
-- TASK-001 正在按已确认的 D1～D6 推荐方案实施：
-  [FEAT-001](../doc/04_features/FEAT-001_windows_terminal_toolbar.md)、
-  [FEAT-002](../doc/04_features/FEAT-002_everything_search_pane.md)、
-  [FEAT-003](../doc/04_features/FEAT-003_dual_pane.md)。
-- FEAT-002 已明确搜索下拉菜单：默认当前文件夹范围、可切换全局，以及五项匹配选项。
-- Terminal 工具栏已构建验证；Everything 查询构造器与双面板基础已实现，IPC/结果窗格、分隔条、会话迁移及跨面板文件操作仍待完成。
-- `AGENTS.md` 已加入“快速与轻量”原则，后续设计与实现必须优先保证响应、资源占用和最小依赖。
+- TASK-001 已完成：Windows Terminal 工具栏、Everything 搜索窗格、左右双面板、跨面板复制/移动、默认详细列表和列宽继承均已实现并完成真实主窗口验收。
+- 双面板仍通过 `--enable-features DualPane` 开放；启动后使用“View > Dual pane”切换。
+- `AGENTS.md` 的“快速与轻量”原则继续有效，后续设计与实现必须优先保证响应、资源占用和最小依赖。
 
 ## 当前风险提示
 
 > 最多 3 条。只记录当前仍会影响问题定位、架构设计、模块设计或特性设计的风险；历史变化移入 `memory/`。
 
-- 双面板当前仍缺可拖动分隔条、完整会话迁移模型和跨面板文件操作；不得将临时左右布局视为功能完成。
+- 系统剪贴板可能被其他进程短暂占用，使未改动的 `ClipboardTest` 波动失败；TASK-001 相关及其余 815 项测试均通过。
 
 ## 当前需避开的坑
 
 > 最多 3 条。只记录当前仍容易误导实现、设计或排障的坑；长期经验移入 `memory/` 或 `doc/09_note/`。
 
+- 独立 Everything IPC 回调窗口通过不能代表主窗口链路通过；回归必须覆盖真实主窗口的 `WM_COPYDATA`、Holder `WM_NOTIFY` 转发、定时器和虚拟列表更新。
 - 不应为双面板重复增加 `Config::dualPane`、`Feature::DualPane` 或 `IDM_VIEW_DUAL_PANE`。
 
 ## 当前临时约束
@@ -47,12 +44,13 @@ max_lines: 200
 
 ## 最近一次完整验证
 
-- 2026-09-12 21:34:30: Debug x64 应用与测试工程构建通过；Everything 查询构造器及 XML/注册表配置往返测试共 6 项通过。
+- 2026-09-16 09:15:00：Debug/Release x64 主程序构建通过；815 项非剪贴板测试全部通过；Everything 1.4.1.969 真实主窗口返回 13 条且可导航；文件双击/列宽、双面板 100 次切换与恢复、跨面板真实复制/移动，以及 Windows Terminal 1.24.11911.0 特殊字符目录均通过。
 
 ## 当前不可用验证
 
-- N/A
+- Windows 应用控制接口未枚举出 Explorer++，无法生成截图式验收证据；已用直接驱动真实 `Explorer++.exe` 主窗口和读取真实进程状态的端到端程序替代。
+- 解决方案级 Release 的安装器项目需要本机未安装的 WiX Toolset 3.11；Release x64 Explorer++ 主程序本身构建成功。
 
 ## 下次会话提醒
 
-- 先读取 TASK-001 和三份 Feature；继续 Everything IPC/窗格及双面板存储/分隔条，完成前不可标记任务完成。
+- TASK-001 已完成；后续若改动 Everything 或双面板，先读 `memory/MEM-001_task001_terminal_everything_dual_pane.md`。

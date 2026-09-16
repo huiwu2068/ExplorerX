@@ -29,6 +29,7 @@
 #include "TaskbarThumbnails.h"
 #include "ThemeWindowTracker.h"
 #include "WindowStorage.h"
+#include "../Helper/DpiCompatibility.h"
 #include "../Helper/WindowHelper.h"
 #include "../Helper/WindowSubclass.h"
 #include <fmt/format.h>
@@ -76,14 +77,15 @@ Explorerplusplus::Explorerplusplus(AppServices *appServices, HINSTANCE resourceI
 		if (storageData->paneLayoutVersion >= 1)
 		{
 			m_config->dualPane = storageData->dualPane;
-			m_config->dualPaneSplitRatio =
-				std::clamp(storageData->dualPaneSplitRatio, 2000, 8000);
+			m_config->dualPaneSplitRatio = std::clamp(storageData->dualPaneSplitRatio, 2000, 8000);
 			m_everythingSearchPaneVisible = storageData->everythingSearchPaneVisible;
 			m_everythingSearchPaneWidth = std::max(storageData->everythingSearchPaneWidth, 260);
 			m_preservedRightPaneTabs = storageData->rightPaneTabs;
 			m_preservedRightPaneSelectedTab = storageData->rightPaneSelectedTab;
 		}
 	}
+	m_everythingSearchPaneWidth =
+		DpiCompatibility::GetInstance().ScaleValue(m_hwnd, m_everythingSearchPaneWidth);
 
 	SetUpControlVisibilityConfigListeners();
 
@@ -292,7 +294,8 @@ WindowStorageData Explorerplusplus::GetStorageData() const
 		.dualPaneSplitRatio = m_config->dualPaneSplitRatio,
 		.rightPaneSelectedTab = 0,
 		.everythingSearchPaneVisible = m_everythingSearchPaneVisible,
-		.everythingSearchPaneWidth = m_everythingSearchPaneWidth };
+		.everythingSearchPaneWidth = MulDiv(m_everythingSearchPaneWidth, 96,
+			static_cast<int>(DpiCompatibility::GetInstance().GetDpiForWindow(m_hwnd))) };
 	if (m_config->dualPane && m_secondaryBrowserPane
 		&& m_secondaryBrowserPane->GetTabContainer()->GetNumTabs() > 0)
 	{

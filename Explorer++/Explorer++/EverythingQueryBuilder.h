@@ -54,7 +54,8 @@ public:
 
 		if (settings.scope == EverythingSearchScope::Global)
 		{
-			return EverythingQuery{ .expression = std::wstring(userExpression), .settings = settings };
+			return EverythingQuery{ .expression = std::wstring(userExpression),
+				.settings = settings };
 		}
 
 		if (!currentFolder || currentFolder->empty())
@@ -78,8 +79,12 @@ public:
 			folder.push_back(L'\\');
 		}
 
-		EverythingQuery query{ .expression = L"path:\"" + EscapeQuotedTerm(folder)
-				+ L"\" (" + std::wstring(userExpression) + L")",
+		// Everything's documented folder-tree syntax is a quoted absolute path with a trailing
+		// backslash. `path:` is a match-path modifier, not a scope function; prefixing the
+		// directory with it makes Everything 1.4 return no results for the otherwise valid folder
+		// constraint.
+		EverythingQuery query{ .expression = L"\"" + EscapeQuotedTerm(folder) + L"\" <"
+				+ std::wstring(userExpression) + L">",
 			.settings = settings };
 		return query;
 	}

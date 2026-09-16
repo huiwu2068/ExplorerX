@@ -50,7 +50,8 @@ TEST(EverythingSearchControllerTest, IgnoresReplyFromPreviousGeneration)
 			return true;
 		});
 	int callbackCount = 0;
-	controller.SetResultsCallback([&callbackCount](const EverythingIpcReply &) { ++callbackCount; });
+	controller.SetResultsCallback(
+		[&callbackCount](const EverythingIpcReply &) { ++callbackCount; });
 	EverythingSearchSettings settings;
 	settings.scope = EverythingSearchScope::Global;
 
@@ -81,12 +82,41 @@ TEST(EverythingSearchControllerTest, LoadsEachPageAtMostOnce)
 		EverythingSearchController::SubmitResult::Submitted);
 	ASSERT_TRUE(controller.RequestPage(734));
 	EXPECT_FALSE(controller.RequestPage(999));
+	ASSERT_EQ(requests.size(), 1u);
+
+	auto reply = BuildEmptyReply(0);
+	EXPECT_TRUE(controller.HandleCopyData(requests[0].replyId, reply));
 	ASSERT_EQ(requests.size(), 2u);
 	EXPECT_EQ(requests[1].offset, 500u);
 
-	auto reply = BuildEmptyReply(500);
+	reply = BuildEmptyReply(500);
 	EXPECT_TRUE(controller.HandleCopyData(requests[1].replyId, reply));
 	EXPECT_FALSE(controller.RequestPage(500));
+}
+
+TEST(EverythingSearchControllerTest, SerializesPaginationRequestsForEverythingReplyWindow)
+{
+	std::vector<SentRequest> requests;
+	EverythingSearchController controller(
+		[&requests](HWND, DWORD replyId, const EverythingQuery &, DWORD offset, DWORD)
+		{
+			requests.push_back({ replyId, offset });
+			return true;
+		});
+	EverythingSearchSettings settings;
+	settings.scope = EverythingSearchScope::Global;
+	ASSERT_EQ(controller.Submit(nullptr, L"query", settings, std::nullopt),
+		EverythingSearchController::SubmitResult::Submitted);
+	ASSERT_TRUE(controller.RequestPage(500));
+	ASSERT_TRUE(controller.RequestPage(1000));
+	ASSERT_EQ(requests.size(), 1u);
+
+	EXPECT_TRUE(controller.HandleCopyData(requests[0].replyId, BuildEmptyReply(0, 1500)));
+	ASSERT_EQ(requests.size(), 2u);
+	EXPECT_EQ(requests[1].offset, 500u);
+	EXPECT_TRUE(controller.HandleCopyData(requests[1].replyId, BuildEmptyReply(500, 1500)));
+	ASSERT_EQ(requests.size(), 3u);
+	EXPECT_EQ(requests[2].offset, 1000u);
 }
 
 TEST(EverythingSearchControllerTest, CancelInvalidatesOutstandingReply)
@@ -104,4 +134,34 @@ TEST(EverythingSearchControllerTest, CancelInvalidatesOutstandingReply)
 		EverythingSearchController::SubmitResult::Submitted);
 	controller.CancelPendingRequests();
 	EXPECT_FALSE(controller.HandleCopyData(replyId, BuildEmptyReply(0)));
+}
+
+TEST(EverythingSearchControllerTest, ReportsEverythingUnavailableWhenDeliveryCannotStart)
+{
+	EverythingSearchController controller(
+		[](HWND, DWORD, const EverythingQuery &, DWORD, DWORD) { return false; });
+	EverythingSearchSettings settings;
+	settings.scope = EverythingSearchScope::Global;
+
+	EXPECT_EQ(controller.Submit(nullptr, L"query", settings, std::nullopt),
+		EverythingSearchController::SubmitResult::EverythingUnavailable);
+	EXPECT_FALSE(controller.RequestPage(500));
+}
+
+TEST(EverythingSearchControllerTest, AcceptsReplyThatArrivesBeforeQueryReturns)
+{
+	EverythingSearchController *controllerPtr = nullptr;
+	EverythingSearchController controller(
+		[&controllerPtr](HWND, DWORD replyId, const EverythingQuery &, DWORD offset, DWORD)
+		{ return controllerPtr->HandleCopyData(replyId, BuildEmptyReply(offset)); });
+	controllerPtr = &controller;
+	int callbackCount = 0;
+	controller.SetResultsCallback(
+		[&callbackCount](const EverythingIpcReply &) { ++callbackCount; });
+	EverythingSearchSettings settings;
+	settings.scope = EverythingSearchScope::Global;
+
+	EXPECT_EQ(controller.Submit(nullptr, L"query", settings, std::nullopt),
+		EverythingSearchController::SubmitResult::Submitted);
+	EXPECT_EQ(callbackCount, 1);
 }

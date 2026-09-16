@@ -10,19 +10,19 @@
 #include "Config.h"
 #include "FeatureList.h"
 #include "MainTabView.h"
+#include "PreservedTab.h"
 #include "Runtime.h"
 #include "ShellBrowser/NavigateParams.h"
 #include "ShellBrowser/NavigationEvents.h"
 #include "ShellBrowser/NavigationRequest.h"
 #include "ShellBrowser/ShellBrowserEvents.h"
 #include "ShellBrowser/ShellBrowserImpl.h"
-#include "PreservedTab.h"
 #include "TabBacking.h"
 #include "TabContainer.h"
 #include "TabEvents.h"
 #include "TabStorage.h"
-#include "../Helper/ShellHelper.h"
 #include "../Helper/Helper.h"
+#include "../Helper/ShellHelper.h"
 #include <cmath>
 
 void Explorerplusplus::InitializeTabs()
@@ -95,7 +95,8 @@ void Explorerplusplus::MaybeUpdateTabBarVisibility()
 
 void Explorerplusplus::OnTabCreated(const Tab &tab)
 {
-	auto *pane = tab.GetTabContainer() == m_browserPane->GetTabContainer() ? m_browserPane.get()
+	auto *pane = tab.GetTabContainer() == m_browserPane->GetTabContainer()
+		? m_browserPane.get()
 		: m_secondaryBrowserPane.get();
 	const HWND listView = tab.GetShellBrowserImpl()->GetListView();
 	m_windowSubclasses.push_back(std::make_unique<WindowSubclass>(listView,
@@ -313,16 +314,22 @@ void Explorerplusplus::CreateSecondaryPane(const WindowStorageData *storageData)
 	{
 		if (m_secondaryBrowserPane->GetTabContainer()->GetNumTabs() == 0)
 		{
-			const auto &directory =
-				m_browserPane->GetTabContainer()->GetSelectedTab().GetShellBrowserImpl()->GetDirectoryPath();
-			m_secondaryBrowserPane->GetTabContainer()->CreateNewTab(directory, { .selected = true });
+			const auto &directory = m_browserPane->GetTabContainer()
+										->GetSelectedTab()
+										.GetShellBrowserImpl()
+										->GetDirectoryPath();
+			m_secondaryBrowserPane->GetTabContainer()->CreateNewTab(directory,
+				{ .selected = true });
 		}
 		ShowWindow(m_dualPaneSplitter, SW_SHOW);
+		SetActivePane(m_browserPane.get());
 		return;
 	}
 
-	m_secondaryTabBacking = TabBacking::Create(m_hwnd, this, this, m_resourceLoader, m_config, m_tabEvents);
-	auto *tabView = MainTabView::Create(m_secondaryTabBacking->GetHWND(), m_config, m_resourceLoader);
+	m_secondaryTabBacking =
+		TabBacking::Create(m_hwnd, this, this, m_resourceLoader, m_config, m_tabEvents);
+	auto *tabView =
+		MainTabView::Create(m_secondaryTabBacking->GetHWND(), m_config, m_resourceLoader);
 	m_connections.push_back(tabView->sizeUpdatedSignal.AddObserver([this] { UpdateLayout(); }));
 	auto *tabContainer = TabContainer::Create(tabView, this, &m_shellBrowserFactory, m_appServices);
 	m_secondaryBrowserPane = std::make_unique<BrowserPane>(BrowserPaneId::Right, tabContainer);
@@ -332,20 +339,21 @@ void Explorerplusplus::CreateSecondaryPane(const WindowStorageData *storageData)
 	m_windowSubclasses.push_back(std::make_unique<WindowSubclass>(m_dualPaneSplitter,
 		std::bind_front(&Explorerplusplus::DualPaneSplitterSubclass, this)));
 
-	if (storageData && storageData->paneLayoutVersion >= 1
-		&& !storageData->rightPaneTabs.empty())
+	if (storageData && storageData->paneLayoutVersion >= 1 && !storageData->rightPaneTabs.empty())
 	{
-		SetActivePane(m_secondaryBrowserPane.get());
+		// Route restored tabs to the right container without invoking SetActivePane yet: the new
+		// container has no selected tab until its first item is created.
+		m_activePane = m_secondaryBrowserPane.get();
 		CreateTabsFromStorageData(storageData->rightPaneTabs, storageData->rightPaneSelectedTab);
-		if (storageData->activePane != BrowserPaneId::Right)
-		{
-			SetActivePane(m_browserPane.get());
-		}
+		SetActivePane(storageData->activePane == BrowserPaneId::Right ? m_secondaryBrowserPane.get()
+																	  : m_browserPane.get());
 	}
 	else
 	{
-		const auto &directory =
-			m_browserPane->GetTabContainer()->GetSelectedTab().GetShellBrowserImpl()->GetDirectoryPath();
+		const auto &directory = m_browserPane->GetTabContainer()
+									->GetSelectedTab()
+									.GetShellBrowserImpl()
+									->GetDirectoryPath();
 		tabContainer->CreateNewTab(directory, { .selected = true });
 		SetActivePane(m_browserPane.get());
 		m_preservedRightPaneTabs.clear();
@@ -419,8 +427,8 @@ LRESULT Explorerplusplus::DualPaneSplitterSubclass(HWND hwnd, UINT msg, WPARAM w
 			return;
 		}
 
-		const double ratio = std::clamp(
-			static_cast<double>(cursor.x - m_dualPaneWorkspaceLeft) / m_dualPaneWorkspaceWidth,
+		const double ratio = std::clamp(static_cast<double>(cursor.x - m_dualPaneWorkspaceLeft)
+				/ m_dualPaneWorkspaceWidth,
 			0.2, 0.8);
 		m_config->dualPaneSplitRatio = static_cast<int>(std::lround(ratio * 10000));
 		UpdateLayout();
@@ -468,8 +476,8 @@ LRESULT Explorerplusplus::DualPaneSplitterSubclass(HWND hwnd, UINT msg, WPARAM w
 		if (wParam == VK_LEFT || wParam == VK_RIGHT)
 		{
 			const int step = IsKeyDown(VK_CONTROL) ? 500 : 100;
-			m_config->dualPaneSplitRatio = std::clamp(m_config->dualPaneSplitRatio
-				+ (wParam == VK_RIGHT ? step : -step), 2000, 8000);
+			m_config->dualPaneSplitRatio = std::clamp(
+				m_config->dualPaneSplitRatio + (wParam == VK_RIGHT ? step : -step), 2000, 8000);
 			UpdateLayout();
 			return 0;
 		}
@@ -486,12 +494,10 @@ bool Explorerplusplus::CanTransferToOtherPane() const
 		return false;
 	}
 
-	const BrowserPane *otherPane = m_activePane == m_browserPane.get()
-		? m_secondaryBrowserPane.get()
-		: m_browserPane.get();
+	const BrowserPane *otherPane =
+		m_activePane == m_browserPane.get() ? m_secondaryBrowserPane.get() : m_browserPane.get();
 	const auto *source = m_activePane->GetTabContainer()->GetSelectedTab().GetShellBrowserImpl();
-	const auto *destination =
-		otherPane->GetTabContainer()->GetSelectedTab().GetShellBrowserImpl();
+	const auto *destination = otherPane->GetTabContainer()->GetSelectedTab().GetShellBrowserImpl();
 	if (source->GetNumSelected() == 0 || destination->InVirtualFolder()
 		|| ArePidlsEquivalent(source->GetDirectory().Raw(), destination->GetDirectory().Raw()))
 	{
@@ -511,12 +517,12 @@ void Explorerplusplus::TransferToOtherPane(TransferAction action)
 		return;
 	}
 
-	BrowserPane *otherPane = m_activePane == m_browserPane.get() ? m_secondaryBrowserPane.get()
-		: m_browserPane.get();
+	BrowserPane *otherPane =
+		m_activePane == m_browserPane.get() ? m_secondaryBrowserPane.get() : m_browserPane.get();
 	auto *source = m_activePane->GetTabContainer()->GetSelectedTab().GetShellBrowserImpl();
-	const auto *destination =
-		otherPane->GetTabContainer()->GetSelectedTab().GetShellBrowserImpl();
-	const HRESULT hr = source->TransferSelectedItemsToFolder(destination->GetDirectory().Raw(), action);
+	const auto *destination = otherPane->GetTabContainer()->GetSelectedTab().GetShellBrowserImpl();
+	const HRESULT hr =
+		source->TransferSelectedItemsToFolder(destination->GetDirectory().Raw(), action);
 	if (FAILED(hr))
 	{
 		MessageBox(m_hwnd, L"The selected items could not be transferred to the other pane.",
@@ -528,12 +534,22 @@ void Explorerplusplus::OnTabPreRemoval(const Tab &tab, int index)
 {
 	UNREFERENCED_PARAMETER(index);
 
+	auto *tabContainer = tab.GetTabContainer();
+	if (m_config->dualPane && m_secondaryBrowserPane && GetLifecycleState() == LifecycleState::Main
+		&& tabContainer->GetNumTabs() == 1)
+	{
+		// A visible pane must always have a selected tab. Create its replacement before the old tab
+		// is removed so that observers never see an empty TabContainer. This is intentionally
+		// skipped while dual-pane mode is being disabled or the window is shutting down.
+		tabContainer->CreateNewTabInDefaultDirectory({ .selected = true });
+	}
+
 	// It's only necessary to begin shutdown if it hasn't already started. Shutdown will be started
 	// elsewhere if the user explicitly closes the window. So, it's only necessary to shutdown here
 	// if the user implicitly closes the window by closing the last tab.
-	const bool closingLastLeftTab =
-		tab.GetTabContainer() == m_browserPane->GetTabContainer()
-		&& (!m_secondaryBrowserPane || m_secondaryBrowserPane->GetTabContainer()->GetNumTabs() == 0);
+	const bool closingLastLeftTab = tab.GetTabContainer() == m_browserPane->GetTabContainer()
+		&& (!m_secondaryBrowserPane
+			|| m_secondaryBrowserPane->GetTabContainer()->GetNumTabs() == 0);
 	if (closingLastLeftTab && GetLifecycleState() == LifecycleState::Main)
 	{
 		BeginShutdown();
@@ -543,7 +559,8 @@ void Explorerplusplus::OnTabPreRemoval(const Tab &tab, int index)
 void Explorerplusplus::OnTabRemoved(const Tab &tab)
 {
 	const bool allPanesEmpty = tab.GetTabContainer() == m_browserPane->GetTabContainer()
-		&& (!m_secondaryBrowserPane || m_secondaryBrowserPane->GetTabContainer()->GetNumTabs() == 0);
+		&& (!m_secondaryBrowserPane
+			|| m_secondaryBrowserPane->GetTabContainer()->GetNumTabs() == 0);
 	if (allPanesEmpty)
 	{
 		// The last tab has been closed, so the window should be closed as well. However, it's not

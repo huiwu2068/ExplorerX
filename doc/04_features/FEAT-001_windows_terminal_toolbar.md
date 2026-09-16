@@ -1,9 +1,9 @@
 ---
-status: draft
+status: active
 owner: lzh
 created: 2026-09-12 20:28:05
-updated: 2026-09-12 20:28:05
-last_verified: 2026-09-12 20:28:05
+updated: 2026-09-16 09:15:00
+last_verified: 2026-09-16 09:15:00
 verified_commit: working-tree
 ---
 
@@ -155,4 +155,3 @@ Windows Terminal 官方支持使用 `-d`/`--startingDirectory` 指定启动目�
 
 - [FEAT-003：双面板](FEAT-003_dual_pane.md)
 - [Windows Terminal 命令行参数](https://learn.microsoft.com/en-us/windows/terminal/command-line-arguments)
-

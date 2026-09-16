@@ -14,10 +14,11 @@
 > - 不要把临时任务、一次性错误日志、当天状态写入记忆。
 
 ### 1. 偏好与项目约束
-- **OPTIONAL_TODO**: 例如：双备份规则、特定的编码偏好或提交前置 hook。
+- TASK 级任务完成后必须创建 Git commit，并运行 `tools/backup_project.py` 完成项目备份。
 
 ### 2. 关键路径与构建配置
-- **OPTIONAL_TODO**: 例如：开发机特有的端口占用、编译路径别名或构建缓存配置。
+- Visual Studio 2022 Build Tools 位于 `C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools`。
+- TASK-001 的真实主窗口排障与验收经验见 `memory/MEM-001_task001_terminal_everything_dual_pane.md`。
 
 ---
 

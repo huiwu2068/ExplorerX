@@ -684,7 +684,7 @@ private:
 	int m_uniqueFolderId;
 
 	ShellBrowserEvents *const m_shellBrowserEvents;
-	const Config *const m_config;
+	Config *const m_config;
 	ClipboardStore *const m_clipboardStore;
 	const ResourceLoader *const m_resourceLoader;
 	FolderSettings m_folderSettings;
