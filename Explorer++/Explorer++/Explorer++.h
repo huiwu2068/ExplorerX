@@ -247,6 +247,7 @@ private:
 	void UpdateEverythingListSortArrow();
 	void CancelActiveEverythingSearchRequest();
 	void ActivateEverythingSearchResult();
+	void CopySelectedEverythingSearchResults();
 	void ShowEverythingSearchResultContextMenu();
 	int CreateEverythingSearchTab(const std::wstring &expression,
 		const EverythingSearchSettings &settings, const std::optional<std::wstring> &currentFolder);
@@ -288,6 +289,7 @@ private:
 	void CreateInitialTabs(const WindowStorageData *storageData);
 	void CreateTabsFromStorageData(const std::vector<TabStorageData> &tabs, int selectedTab);
 	void CreateCommandLineTabs();
+	void OpenFileLocation(const std::wstring &itemPath) override;
 	void OnTabListViewSelectionChanged(const ShellBrowser *shellBrowser);
 
 	void OnNavigationCommitted(const NavigationRequest *request);

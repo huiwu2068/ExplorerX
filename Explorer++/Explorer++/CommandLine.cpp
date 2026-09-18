@@ -126,7 +126,25 @@ std::variant<Settings, ExitInfo> Parse(const std::wstring &commandLine)
 		"Directories to open. Paths with spaces should be enclosed in double quotes (e.g. "
 		R"("C:\path with spaces").)");
 
-	auto splitResult = CommandLineSplitter::Split(wstrToUtf8Str(commandLine));
+	// Windows Explorer accepts /select,<path>, and applications such as web browsers use that
+	// syntax for "Show in folder". Normalize it before splitting, since /select,"<path with
+	// spaces>" isn't valid under the regular command-line grammar used by Explorer++.
+	std::wstring normalizedCommandLine = commandLine;
+	constexpr std::wstring_view EXPLORER_SELECT_PREFIX = L"/select,";
+	for (size_t position = 0; position + EXPLORER_SELECT_PREFIX.size()
+		<= normalizedCommandLine.size(); ++position)
+	{
+		if ((position == 0 || iswspace(normalizedCommandLine[position - 1]))
+			&& _wcsnicmp(normalizedCommandLine.c_str() + position, EXPLORER_SELECT_PREFIX.data(),
+				EXPLORER_SELECT_PREFIX.size())
+				== 0)
+		{
+			normalizedCommandLine.replace(position, EXPLORER_SELECT_PREFIX.size(), L"--select ");
+			position += std::wstring_view(L"--select ").size() - 1;
+		}
+	}
+
+	auto splitResult = CommandLineSplitter::Split(wstrToUtf8Str(normalizedCommandLine));
 
 	if (!splitResult.succeeded)
 	{

@@ -211,6 +211,11 @@ void BrowserWindowFake::OpenFileItem(const std::wstring &itemPath, const std::ws
 	OpenFileItem(pidl.Raw(), parameters);
 }
 
+void BrowserWindowFake::OpenFileLocation(const std::wstring &itemPath)
+{
+	UNREFERENCED_PARAMETER(itemPath);
+}
+
 void BrowserWindowFake::OpenFileItem(PCIDLIST_ABSOLUTE pidlItem, const std::wstring &parameters)
 {
 	// No action is taken to open files here.

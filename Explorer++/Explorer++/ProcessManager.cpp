@@ -60,7 +60,8 @@ bool ProcessManager::InitializeCurrentProcess(const CommandLine::Settings *comma
 
 		if (!config->allowMultipleInstances)
 		{
-			AttemptToNotifyExistingProcess(existingWindow, commandLineSettings->directories);
+			AttemptToNotifyExistingProcess(existingWindow, commandLineSettings->directories,
+				commandLineSettings->filesToSelect);
 			return false;
 		}
 	}
@@ -86,6 +87,7 @@ LRESULT ProcessManager::MessageWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 
 void ProcessManager::OnCopyData(const COPYDATASTRUCT *cds)
 {
+	constexpr ULONG_PTR COPYDATA_OPEN_FILE_LOCATION = 1;
 	auto *browser = m_browserList->GetLastActive();
 
 	if (!browser)
@@ -95,9 +97,16 @@ void ProcessManager::OnCopyData(const COPYDATASTRUCT *cds)
 
 	if (cds->cbData > 0)
 	{
-		std::wstring directory(static_cast<wchar_t *>(cds->lpData), cds->cbData / sizeof(wchar_t));
+		std::wstring path(static_cast<wchar_t *>(cds->lpData), cds->cbData / sizeof(wchar_t));
 
-		browser->OpenItem(directory, OpenFolderDisposition::NewTabDefault);
+		if (cds->dwData == COPYDATA_OPEN_FILE_LOCATION)
+		{
+			browser->OpenFileLocation(path);
+		}
+		else
+		{
+			browser->OpenItem(path, OpenFolderDisposition::NewTabDefault);
+		}
 	}
 	else
 	{
@@ -108,8 +117,9 @@ void ProcessManager::OnCopyData(const COPYDATASTRUCT *cds)
 }
 
 void ProcessManager::AttemptToNotifyExistingProcess(HWND existingWindow,
-	const std::vector<std::wstring> &directories)
+	const std::vector<std::wstring> &directories, const std::vector<std::wstring> &filesToSelect)
 {
+	constexpr ULONG_PTR COPYDATA_OPEN_FILE_LOCATION = 1;
 	DWORD processId;
 	auto threadId = GetWindowThreadProcessId(existingWindow, &processId);
 
@@ -120,8 +130,17 @@ void ProcessManager::AttemptToNotifyExistingProcess(HWND existingWindow,
 
 	AllowSetForegroundWindow(processId);
 
-	if (!directories.empty())
+	if (!directories.empty() || !filesToSelect.empty())
 	{
+		for (const auto &file : filesToSelect)
+		{
+			COPYDATASTRUCT cds = {};
+			cds.dwData = COPYDATA_OPEN_FILE_LOCATION;
+			cds.cbData = static_cast<DWORD>(file.size() * sizeof(wchar_t));
+			cds.lpData = const_cast<wchar_t *>(file.c_str());
+			SendMessage(existingWindow, WM_COPYDATA, NULL, reinterpret_cast<LPARAM>(&cds));
+		}
+
 		for (const auto &directory : directories)
 		{
 			COPYDATASTRUCT cds = {};

@@ -56,10 +56,10 @@ From PowerShell, call `VsDevCmd.bat` and MSBuild in the same `cmd.exe` process. 
 Set-Location 'E:\path\to\explorerplusplus'
 
 # Build the 64-bit Debug configuration.
-& cmd.exe /d /c 'call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat" -arch=x64 -host_arch=x64 && msbuild ".\Explorer++\Explorer++.sln" /m /p:Configuration=Debug /p:Platform=x64'
+& cmd.exe /d /c 'call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat" -arch=x64 -host_arch=x64 && msbuild ".\Explorer++\Explorer++\Explorer++.vcxproj" /m /p:Configuration=Debug /p:Platform=x64 /p:SolutionDir=%CD%\Explorer++\'
 
 # Build the 64-bit Release configuration.
-& cmd.exe /d /c 'call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat" -arch=x64 -host_arch=x64 && msbuild ".\Explorer++\Explorer++.sln" /m /p:Configuration=Release /p:Platform=x64'
+& cmd.exe /d /c 'call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat" -arch=x64 -host_arch=x64 && msbuild ".\Explorer++\Explorer++\Explorer++.vcxproj" /m /p:Configuration=Release /p:Platform=x64 /p:SolutionDir=%CD%\Explorer++\'
 ```
 
 After a successful Debug build, run the program from PowerShell with:

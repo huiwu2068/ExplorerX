@@ -222,39 +222,7 @@ void Explorerplusplus::CreateCommandLineTabs()
 
 	for (const auto &fileToSelect : commandLineSettings->filesToSelect)
 	{
-		auto absolutePath = TransformUserEnteredPathToAbsolutePathAndNormalize(fileToSelect,
-			currentDirectory.value(), EnvVarsExpansion::DontExpand);
-
-		if (!absolutePath)
-		{
-			continue;
-		}
-
-		unique_pidl_absolute fullPidl;
-		HRESULT hr = ParseDisplayNameForNavigation(absolutePath->c_str(), fullPidl);
-
-		if (FAILED(hr))
-		{
-			continue;
-		}
-
-		unique_pidl_absolute parentPidl(ILCloneFull(fullPidl.get()));
-
-		BOOL res = ILRemoveLastID(parentPidl.get());
-
-		if (!res)
-		{
-			continue;
-		}
-
-		auto navigateParams = NavigateParams::Normal(parentPidl.get());
-		Tab &newTab =
-			GetActivePane()->GetTabContainer()->CreateNewTab(navigateParams, { .selected = true });
-
-		if (ArePidlsEquivalent(newTab.GetShellBrowser()->GetDirectory().Raw(), parentPidl.get()))
-		{
-			newTab.GetShellBrowserImpl()->SelectItems({ fullPidl.get() });
-		}
+		OpenFileLocation(fileToSelect);
 	}
 
 	for (const auto &directory : commandLineSettings->directories)
@@ -279,6 +247,42 @@ void Explorerplusplus::CreateCommandLineTabs()
 		}
 
 		GetActivePane()->GetTabContainer()->CreateNewTab(*absolutePath, { .selected = true });
+	}
+}
+
+void Explorerplusplus::OpenFileLocation(const std::wstring &itemPath)
+{
+	auto currentDirectory = GetCurrentDirectoryWrapper();
+	if (!currentDirectory)
+	{
+		return;
+	}
+
+	auto absolutePath = TransformUserEnteredPathToAbsolutePathAndNormalize(itemPath,
+		currentDirectory.value(), EnvVarsExpansion::DontExpand);
+	if (!absolutePath)
+	{
+		return;
+	}
+
+	unique_pidl_absolute fullPidl;
+	if (FAILED(ParseDisplayNameForNavigation(absolutePath->c_str(), fullPidl)))
+	{
+		return;
+	}
+
+	unique_pidl_absolute parentPidl(ILCloneFull(fullPidl.get()));
+	if (!ILRemoveLastID(parentPidl.get()))
+	{
+		return;
+	}
+
+	auto navigateParams = NavigateParams::Normal(parentPidl.get());
+	Tab &newTab =
+		GetActivePane()->GetTabContainer()->CreateNewTab(navigateParams, { .selected = true });
+	if (ArePidlsEquivalent(newTab.GetShellBrowser()->GetDirectory().Raw(), parentPidl.get()))
+	{
+		newTab.GetShellBrowserImpl()->SelectItems({ fullPidl.get() });
 	}
 }
 

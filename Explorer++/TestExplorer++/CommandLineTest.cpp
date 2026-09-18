@@ -50,6 +50,16 @@ TEST_F(CommandLineTest, FilesToSelect)
 		L"explorer++.exe --select c:\\windows\\system32 --select h:\\project\\file");
 	EXPECT_THAT(commandLineSettings.filesToSelect,
 		ElementsAre(L"c:\\windows\\system32", L"h:\\project\\file"));
+
+	commandLineSettings =
+		ParseCommandLine(LR"(explorer++.exe /select,"c:\downloads\downloaded file.zip")");
+	EXPECT_THAT(commandLineSettings.filesToSelect,
+		ElementsAre(L"c:\\downloads\\downloaded file.zip"));
+
+	commandLineSettings =
+		ParseCommandLine(LR"(explorer++.exe /select, "c:\downloads\another file.zip")");
+	EXPECT_THAT(commandLineSettings.filesToSelect,
+		ElementsAre(L"c:\\downloads\\another file.zip"));
 }
 
 TEST_F(CommandLineTest, Options)

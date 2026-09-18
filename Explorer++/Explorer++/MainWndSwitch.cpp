@@ -398,7 +398,14 @@ LRESULT Explorerplusplus::HandleMenuOrToolbarButtonOrAccelerator(HWND hwnd, UINT
 
 	case MainToolbarButton::Copy:
 	case IDM_EDIT_COPY:
-		m_commandController.ExecuteCommand(IDM_EDIT_COPY);
+		if (IsEverythingSearchTabSelected())
+		{
+			CopySelectedEverythingSearchResults();
+		}
+		else
+		{
+			m_commandController.ExecuteCommand(IDM_EDIT_COPY);
+		}
 		break;
 
 	case MainToolbarButton::Paste:

@@ -50,6 +50,7 @@
 #include "../Helper/ShellItemContextMenu.h"
 #include "../Helper/ShellItemContextMenuDelegate.h"
 #include "../Helper/WindowHelper.h"
+#include "../Helper/WindowSubclass.h"
 #include <boost/range/adaptor/map.hpp>
 #include <glog/logging.h>
 #include <wil/resource.h>
@@ -168,6 +169,18 @@ void Explorerplusplus::CreateEverythingSearchPane()
 		reinterpret_cast<WPARAM>(GetStockObject(DEFAULT_GUI_FONT)), TRUE);
 	ListView_SetExtendedListViewStyle(m_everythingSearchListView,
 		LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_LABELTIP);
+	m_windowSubclasses.push_back(std::make_unique<WindowSubclass>(m_everythingSearchListView,
+		[this](HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+		{
+			if (msg == WM_KEYDOWN && (wParam == 'C' || wParam == VK_INSERT)
+				&& IsKeyDown(VK_CONTROL) && !IsKeyDown(VK_SHIFT) && !IsKeyDown(VK_MENU))
+			{
+				CopySelectedEverythingSearchResults();
+				return static_cast<LRESULT>(0);
+			}
+
+			return DefSubclassProc(hwnd, msg, wParam, lParam);
+		}));
 	auto &dpiCompatibility = DpiCompatibility::GetInstance();
 	for (const auto &[text, width] : std::to_array<std::pair<const wchar_t *, int>>(
 			 { { L"Name", 140 }, { L"Path", 180 }, { L"Size", 80 }, { L"Modified", 130 } }))
@@ -567,7 +580,11 @@ void Explorerplusplus::OnEverythingListGetDisplayInfo(NMLVDISPINFOW *displayInfo
 		separator == std::wstring::npos ? result.fullPath : result.fullPath.substr(separator + 1);
 	const std::wstring path =
 		separator == std::wstring::npos ? std::wstring() : result.fullPath.substr(0, separator);
-	const std::wstring size = result.isFolder ? std::wstring() : std::to_wstring(result.size);
+	const auto displayFormat = m_config->globalFolderSettings.forceSize
+		? m_config->globalFolderSettings.sizeDisplayFormat
+		: +SizeDisplayFormat::None;
+	const std::wstring size =
+		result.isFolder ? std::wstring() : FormatSizeString(result.size, displayFormat);
 	const std::array<std::wstring, 4> fields = { name, path, size,
 		FormatEverythingModifiedTime(result.dateModified) };
 	const int subItem = displayInfo->item.iSubItem;
@@ -604,6 +621,42 @@ void Explorerplusplus::ActivateEverythingSearchResult()
 	}
 
 	OpenItem(fullPidl.get(), OpenFolderDisposition::ForegroundTab);
+}
+
+void Explorerplusplus::CopySelectedEverythingSearchResults()
+{
+	const auto *state = GetSelectedEverythingSearchTabState();
+	if (!state)
+	{
+		return;
+	}
+
+	std::vector<PidlAbsolute> items;
+	int item = -1;
+	while ((item = ListView_GetNextItem(m_everythingSearchListView, item, LVNI_SELECTED)) != -1)
+	{
+		if (static_cast<size_t>(item) >= state->results.size())
+		{
+			continue;
+		}
+
+		unique_pidl_absolute fullPidl;
+		if (SUCCEEDED(ParseDisplayNameForNavigation(state->results[item].fullPath, fullPidl)))
+		{
+			items.emplace_back(fullPidl.get());
+		}
+	}
+
+	if (!items.empty())
+	{
+		const HRESULT hr =
+			m_pActiveShellBrowser->CopyItemsToClipboard(items, ClipboardAction::Copy);
+		if (FAILED(hr))
+		{
+			LOG(ERROR) << "Failed to copy Everything search results to the clipboard: "
+					   << std::hex << hr;
+		}
+	}
 }
 
 void Explorerplusplus::ShowEverythingSearchResultContextMenu()
@@ -1240,7 +1293,14 @@ void Explorerplusplus::OnAppCommand(UINT cmd)
 		break;
 
 	case APPCOMMAND_COPY:
-		m_commandController.ExecuteCommand(IDM_EDIT_COPY);
+		if (IsEverythingSearchTabSelected())
+		{
+			CopySelectedEverythingSearchResults();
+		}
+		else
+		{
+			m_commandController.ExecuteCommand(IDM_EDIT_COPY);
+		}
 		break;
 
 	case APPCOMMAND_HELP:

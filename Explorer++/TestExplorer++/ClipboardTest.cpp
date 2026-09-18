@@ -4,6 +4,8 @@
 
 #include "pch.h"
 #include "../Helper/Clipboard.h"
+#include "../Helper/FileOperations.h"
+#include "../Helper/ShellHelper.h"
 #include "ImageTestHelper.h"
 #include "../Helper/SystemClipboardStore.h"
 #include <gtest/gtest.h>
@@ -104,4 +106,27 @@ TEST_F(ClipboardTest, Clear)
 	// The clipboard was cleared, so an attempt to read data from it should fail.
 	auto clipboardText = m_clipboard.ReadText();
 	EXPECT_EQ(clipboardText, std::nullopt);
+}
+
+TEST(ClipboardShellTransferTest, CopiedFileCanBeReadAsHDrop)
+{
+	ASSERT_HRESULT_SUCCEEDED(::OleInitialize(nullptr));
+	wil::unique_oleuninitialize_call oleCleanup;
+
+	wchar_t modulePath[MAX_PATH];
+	const DWORD modulePathLength = GetModuleFileName(nullptr, modulePath, std::size(modulePath));
+	ASSERT_GT(modulePathLength, 0u);
+	ASSERT_LT(modulePathLength, std::size(modulePath));
+
+	unique_pidl_absolute pidl;
+	ASSERT_HRESULT_SUCCEEDED(ParseDisplayNameForNavigation(modulePath, pidl));
+
+	SystemClipboardStore store;
+	wil::com_ptr_nothrow<IDataObject> dataObject;
+	ASSERT_HRESULT_SUCCEEDED(CopyFiles(&store, { PidlAbsolute(pidl.get()) }, &dataObject));
+
+	Clipboard clipboard(&store);
+	auto clipboardFiles = clipboard.ReadHDropData();
+	ASSERT_TRUE(clipboardFiles.has_value());
+	EXPECT_THAT(*clipboardFiles, ElementsAre(StrCaseEq(modulePath)));
 }

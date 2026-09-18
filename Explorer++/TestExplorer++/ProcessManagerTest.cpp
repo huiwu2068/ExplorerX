@@ -115,3 +115,28 @@ TEST_F(ProcessManagerTest, ExistingProcessOpenDirectories)
 	res = processData2.Initialize(windowName);
 	EXPECT_FALSE(res);
 }
+
+TEST_F(ProcessManagerTest, ExistingProcessSelectFiles)
+{
+	auto windowName = CreateGUID();
+
+	ProcessData processData1;
+	auto res = processData1.Initialize(windowName);
+	ASSERT_TRUE(res);
+
+	std::vector<std::wstring> files = { L"c:\\downloads\\one.zip", L"d:\\two.exe" };
+	BrowserWindowMock browser;
+	processData1.browserList.AddBrowser(&browser);
+
+	for (const auto &file : files)
+	{
+		EXPECT_CALL(browser, OpenFileLocation(file));
+	}
+	EXPECT_CALL(browser, Activate()).Times(static_cast<int>(files.size()));
+
+	ProcessData processData2;
+	processData2.settings.filesToSelect = files;
+	processData2.config.allowMultipleInstances = false;
+	res = processData2.Initialize(windowName);
+	EXPECT_FALSE(res);
+}

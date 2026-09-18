@@ -77,6 +77,7 @@ public:
 	void OpenItem(PCIDLIST_ABSOLUTE pidlItem);
 	virtual void OpenItem(PCIDLIST_ABSOLUTE pidlItem,
 		OpenFolderDisposition openFolderDisposition) = 0;
+	virtual void OpenFileLocation(const std::wstring &itemPath) = 0;
 
 	// Opens the specified item externally, regardless of whether it's a file or a folder.
 	virtual void OpenFileItem(const std::wstring &itemPath, const std::wstring &parameters) = 0;
