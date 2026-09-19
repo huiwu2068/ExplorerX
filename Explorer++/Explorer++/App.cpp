@@ -114,7 +114,7 @@ int App::Run()
 	disable : 4244) // 'argument': conversion from '_Rep' to 'size_t', possible loss of data
 	const auto saveFrequency = 30s;
 	m_saveSettingsTimer = m_runtime.GetTimerQueue()->make_timer(saveFrequency, saveFrequency,
-		m_runtime.GetUiThreadExecutor(), std::bind_front(&App::SaveSettings, this));
+		m_runtime.GetUiThreadExecutor(), [this] { SaveSettings(false); });
 #pragma warning(pop)
 
 	MSG msg;
@@ -188,12 +188,17 @@ void App::LoadSettings(std::vector<WindowStorageData> &windows)
 	ValidateColumns(m_config.globalFolderSettings.folderColumns);
 }
 
-void App::SaveSettings()
+void App::SaveSettings(bool force)
 {
 	// If the application has started exiting, it's not possible to save the settings, so that's not
 	// something that should be attempted. That's because one or more of the windows may have
 	// already been closed.
 	CHECK(!m_exitStarted);
+
+	if (!force && !m_bSettingsDirty)
+	{
+		return;
+	}
 
 	std::unique_ptr<AppStorage> appStorage;
 
@@ -232,6 +237,7 @@ void App::SaveSettings()
 	appStorage->SaveFrequentLocations(&m_frequentLocationsModel);
 
 	appStorage->Commit();
+	m_bSettingsDirty = false;
 }
 
 void App::SetUpLanguageResourceInstance()
@@ -304,6 +310,9 @@ void App::SetUpAppServices()
 	m_appServices.SetTabList(&m_tabList);
 	m_appServices.SetTabRestorer(&m_tabRestorer);
 	m_appServices.SetThemeManager(&m_themeManager);
+	m_connections.push_back(m_tabEvents.AddCreatedObserver([this](Tab &) { MarkSettingsDirty(); }, TabEventScope::Global()));
+	m_connections.push_back(m_tabEvents.AddRemovedObserver([this](const Tab &) { MarkSettingsDirty(); }, TabEventScope::Global()));
+	m_connections.push_back(m_tabEvents.AddMovedObserver([this](const Tab &, int, int) { MarkSettingsDirty(); }, TabEventScope::Global()));
 	m_appServices.CheckFullyInitialized();
 }
 
@@ -446,7 +455,7 @@ void App::OnExitStarted()
 	// The application is going to exit, so the settings need to be saved before the shutdown
 	// begins.
 	m_saveSettingsTimer.cancel();
-	SaveSettings();
+	SaveSettings(true);
 
 	m_exitStarted = true;
 }
@@ -460,5 +469,5 @@ void App::NotifySessionEnding()
 		return;
 	}
 
-	SaveSettings();
+	SaveSettings(true);
 }

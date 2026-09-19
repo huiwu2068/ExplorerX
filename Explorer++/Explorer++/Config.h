@@ -66,6 +66,10 @@ struct Config
 	bool displayWindowVertical = false;
 	bool goUpOnDoubleClick = true;
 
+	// Performance optimizations
+	bool enableFastPathIO = true;
+	bool enableLazyTabRestoration = true;
+
 	// Indicates whether container files (e.g. .7z, .cab, .rar, .zip) will be opened in Explorer++,
 	// or externally.
 	bool openContainerFiles = false;

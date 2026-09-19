@@ -721,6 +721,16 @@ void Explorerplusplus::OpenItem(PCIDLIST_ABSOLUTE pidlItem,
 		return;
 	}
 
+	TCHAR szPath[MAX_PATH];
+	if (SHGetPathFromIDList(pidlItem, szPath))
+	{
+		DWORD fileAttrs = GetFileAttributes(szPath);
+		if (fileAttrs != INVALID_FILE_ATTRIBUTES && (fileAttrs & FILE_ATTRIBUTE_DIRECTORY))
+		{
+			attributes |= SFGAO_FOLDER;
+		}
+	}
+
 	if (WI_AreAllFlagsSet(attributes, SFGAO_FOLDER | SFGAO_STREAM))
 	{
 		// This is container file. Examples of these files include:

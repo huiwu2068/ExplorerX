@@ -36,6 +36,10 @@ void LoadFromKey(HKEY settingsKey, Config &config)
 		config.showApplicationToolbar);
 	RegistrySettings::Read32BitValueFromRegistry(settingsKey, L"AlwaysOpenNewTab",
 		config.alwaysOpenNewTab);
+	RegistrySettings::Read32BitValueFromRegistry(settingsKey, L"EnableFastPathIO",
+		config.enableFastPathIO);
+	RegistrySettings::Read32BitValueFromRegistry(settingsKey, L"EnableLazyTabRestoration",
+		config.enableLazyTabRestoration);
 	RegistrySettings::Read32BitValueFromRegistry(settingsKey, L"ShowFriendlyDates",
 		config.globalFolderSettings.showFriendlyDates);
 	RegistrySettings::Read32BitValueFromRegistry(settingsKey, L"ShowDisplayWindow",

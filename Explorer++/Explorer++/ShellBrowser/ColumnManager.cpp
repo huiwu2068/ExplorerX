@@ -21,6 +21,8 @@ void ShellBrowserImpl::QueueColumnTask(int itemInternalIndex, ColumnType columnT
 	int columnResultID = m_columnResultIDCounter++;
 
 	BasicItemInfo_t basicItemInfo = getBasicItemInfo(itemInternalIndex);
+	basicItemInfo.pidlComplete.reset(ILCloneFull(basicItemInfo.pidlComplete.get()));
+	basicItemInfo.pridl.reset(ILCloneChild(basicItemInfo.pridl.get()));
 	GlobalFolderSettings globalFolderSettings = m_config->globalFolderSettings;
 
 	auto result = m_columnThreadPool.push(

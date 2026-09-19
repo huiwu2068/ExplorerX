@@ -9,6 +9,7 @@
 #include "NavigationRequestDelegate.h"
 #include "ShellBrowser.h"
 #include "ShellEnumerator.h"
+#include "FastPathEnumerator.h"
 #include "../Helper/ShellHelper.h"
 
 NavigationRequest::NavigationRequest(const ShellBrowser *shellBrowser,
@@ -84,6 +85,22 @@ const std::vector<PidlChild> &NavigationRequest::GetItems() const
 	return m_items;
 }
 
+bool NavigationRequest::IsFastPath() const
+{
+	return m_isFastPath;
+}
+
+const std::vector<ItemInfo_t> &NavigationRequest::GetFastPathItems() const
+{
+	return m_fastPathItems;
+}
+
+std::vector<ItemInfo_t> &NavigationRequest::GetFastPathItems()
+{
+	return m_fastPathItems;
+}
+
+
 bool NavigationRequest::Stopped() const
 {
 	return m_stopToken.stop_requested();
@@ -129,12 +146,24 @@ concurrencpp::null_result NavigationRequest::StartInternal(WeakPtr<NavigationReq
 		navigateParams.pidl = targetPidl.get();
 	}
 
+	bool isFastPath = false;
+	std::vector<ItemInfo_t> fastItems;
 	std::vector<PidlChild> items;
-	hr = shellEnumerator->EnumerateDirectory(navigateParams.pidl.Raw(),
-		ShellItemFilter::ItemType::FoldersAndFiles,
-		showHidden ? ShellItemFilter::HiddenItemPolicy::Include
-				   : ShellItemFilter::HiddenItemPolicy::Exclude,
-		items, stopToken);
+
+	auto isFastPathEnabled = shellBrowser ? shellBrowser->IsFastPathIOEnabled() : false;
+	if (isFastPathEnabled && FastPathEnumerator::EnumerateDirectory(navigateParams.pidl.Raw(), showHidden, fastItems, stopToken))
+	{
+		isFastPath = true;
+		hr = S_OK;
+	}
+	else
+	{
+		hr = shellEnumerator->EnumerateDirectory(navigateParams.pidl.Raw(),
+			ShellItemFilter::ItemType::FoldersAndFiles,
+			showHidden ? ShellItemFilter::HiddenItemPolicy::Include
+					   : ShellItemFilter::HiddenItemPolicy::Exclude,
+			items, stopToken);
+	}
 
 	co_await concurrencpp::resume_on(originalExecutor);
 
@@ -144,7 +173,9 @@ concurrencpp::null_result NavigationRequest::StartInternal(WeakPtr<NavigationReq
 	}
 
 	weakSelf->m_navigateParams = navigateParams;
-	weakSelf->m_items = items;
+	weakSelf->m_items = std::move(items);
+	weakSelf->m_fastPathItems = std::move(fastItems);
+	weakSelf->m_isFastPath = isFastPath;
 	weakSelf->SetState(State::EnumerationFinished);
 
 	if (stopToken.stop_requested())

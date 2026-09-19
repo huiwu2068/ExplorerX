@@ -1,3 +1,4 @@
+#include <unordered_map>
 // Copyright (C) Explorer++ Project
 // SPDX-License-Identifier: GPL-3.0-only
 // See LICENSE in the top level directory
@@ -16,6 +17,7 @@ public:
 
 	void AddOrUpdateIcon(const std::wstring &itemPath, int iconIndex);
 	std::optional<int> MaybeGetIconIndex(const std::wstring &itemPath);
+	std::optional<int> MaybeGetExtensionIconIndex(const std::wstring &itemPath) const;
 
 private:
 	struct CachedIcon
@@ -51,4 +53,5 @@ private:
 
 	CachedIconSet m_cachedIconSet;
 	const std::size_t m_maxItems;
+	std::unordered_map<std::wstring, int> m_extensionIcons;
 };

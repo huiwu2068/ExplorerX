@@ -4,6 +4,7 @@
 
 #include "pch.h"
 #include "ShellEnumeratorImpl.h"
+#include "ShellBrowser/FastPathEnumerator.h"
 #include "ResourceTestHelper.h"
 #include "../Helper/ShellHelper.h"
 #include <gtest/gtest.h>
@@ -67,12 +68,13 @@ protected:
 
 	std::stop_source m_stopSource;
 
-private:
+protected:
 	std::filesystem::path GetEnumerationTestDirectory()
 	{
 		return GetResourcePath(L"EnumerationTestDirectory");
 	}
 
+private:
 	void SetTestFileHidden(bool set)
 	{
 		auto testDirectory = GetEnumerationTestDirectory();
@@ -130,3 +132,58 @@ TEST_F(ShellEnumeratorImplTest, StopToken)
 		ShellItemFilter::HiddenItemPolicy::Exclude, itemNames);
 	EXPECT_TRUE(itemNames.empty());
 }
+
+TEST_F(ShellEnumeratorImplTest, FastPathEnumeration)
+{
+	PidlAbsolute pidl;
+	std::wstring testDirectory = GetEnumerationTestDirectory().wstring();
+	ASSERT_HRESULT_SUCCEEDED(
+		SHParseDisplayName(testDirectory.c_str(), nullptr, PidlOutParam(pidl), 0, nullptr));
+
+	std::wstring physicalPath;
+	EXPECT_TRUE(FastPathEnumerator::IsPhysicalDirectory(pidl.Raw(), physicalPath));
+
+	std::vector<ItemInfo_t> items;
+	std::stop_source stopSource;
+	bool success = FastPathEnumerator::EnumerateDirectory(pidl.Raw(), false, items, stopSource.get_token());
+	EXPECT_TRUE(success);
+
+	std::vector<std::wstring> names;
+	for (const auto &item : items)
+	{
+		names.push_back(item.wfd.cFileName);
+	}
+	EXPECT_THAT(names, UnorderedElementsAre(L"folder1", L"folder2", L"item1.txt", L"item2.txt", L"item3.txt"));
+
+	// Now with hidden items
+	items.clear();
+	success = FastPathEnumerator::EnumerateDirectory(pidl.Raw(), true, items, stopSource.get_token());
+	EXPECT_TRUE(success);
+
+	names.clear();
+	for (const auto &item : items)
+	{
+		names.push_back(item.wfd.cFileName);
+
+		SFGAOF attributes = SFGAO_FOLDER;
+		ASSERT_HRESULT_SUCCEEDED(GetItemAttributes(item.pidlComplete.Raw(), &attributes));
+		bool isDirectory = (item.wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+		EXPECT_EQ(WI_IsFlagSet(attributes, SFGAO_FOLDER), isDirectory);
+	}
+	EXPECT_THAT(names, UnorderedElementsAre(L"folder1", L"folder2", L"item1.txt", L"item2.txt", L"item3.txt", L"hidden.txt"));
+}
+
+TEST_F(ShellEnumeratorImplTest, FastPathStopToken)
+{
+	PidlAbsolute pidl;
+	std::wstring testDirectory = GetEnumerationTestDirectory().wstring();
+	ASSERT_HRESULT_SUCCEEDED(
+		SHParseDisplayName(testDirectory.c_str(), nullptr, PidlOutParam(pidl), 0, nullptr));
+
+	std::vector<ItemInfo_t> items;
+	std::stop_source stopSource;
+	stopSource.request_stop();
+	FastPathEnumerator::EnumerateDirectory(pidl.Raw(), true, items, stopSource.get_token());
+	EXPECT_TRUE(items.empty());
+}
+

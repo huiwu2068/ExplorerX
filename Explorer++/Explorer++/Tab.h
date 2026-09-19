@@ -6,6 +6,8 @@
 
 #include <boost/core/noncopyable.hpp>
 #include <memory>
+#include <optional>
+#include "ShellBrowser/NavigateParams.h"
 
 class BrowserWindow;
 class ShellBrowser;
@@ -68,6 +70,10 @@ public:
 	bool IsLocked() const;
 
 	TabStorageData GetStorageData() const;
+	bool HasPendingLazyNavigation() const;
+	void SetPendingLazyNavigation(const NavigateParams &navigateParams);
+	void ExecutePendingLazyNavigation();
+
 
 	/* Although each tab manages its
 	own columns, it does not know
@@ -98,4 +104,7 @@ private:
 	bool m_useCustomName;
 	std::wstring m_customName;
 	LockState m_lockState;
+	bool m_hasPendingLazyNavigation = false;
+	std::optional<NavigateParams> m_pendingNavigateParams;
+
 };

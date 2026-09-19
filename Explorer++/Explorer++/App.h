@@ -71,7 +71,8 @@ private:
 	void OnBrowserRemoved();
 	void SetUpSession();
 	void LoadSettings(std::vector<WindowStorageData> &windows);
-	void SaveSettings();
+	void SaveSettings(bool force = false);
+	void MarkSettingsDirty() { m_bSettingsDirty = true; }
 	void SetUpLanguageResourceInstance();
 	void SetUpAppServices();
 	void InitializePlugins();
@@ -141,4 +142,6 @@ private:
 	wil::unique_oleuninitialize_call m_oleCleanup;
 
 	bool m_exitStarted = false;
+	bool m_bSettingsDirty = false;
+	std::vector<boost::signals2::connection> m_connections;
 };

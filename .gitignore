@@ -63,6 +63,7 @@ BenchmarkDotNet.Artifacts/
 project.lock.json
 project.fragment.lock.json
 artifacts/
+memory/
 
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
@@ -417,3 +418,7 @@ doc/
 
 # vcpkg
 vcpkg_installed/
+
+AGENTS.md
+MEMORY.md
+memory\

@@ -288,7 +288,8 @@ int ShellBrowserImpl::AddItemInternal(int itemIndex, const ItemInfo_t &itemInfo,
 }
 
 std::optional<ShellBrowserImpl::ItemInfo_t> ShellBrowserImpl::GetItemInformation(
-	IShellFolder *shellFolder, PCIDLIST_ABSOLUTE pidlDirectory, PCITEMID_CHILD pidlChild)
+	IShellFolder *shellFolder, PCIDLIST_ABSOLUTE pidlDirectory, PCITEMID_CHILD pidlChild,
+	std::optional<bool> optIsRecycleBin)
 {
 	ItemInfo_t itemInfo;
 
@@ -316,11 +317,18 @@ std::optional<ShellBrowserImpl::ItemInfo_t> ShellBrowserImpl::GetItemInformation
 
 	SHGDNF displayNameFlags = SHGDN_INFOLDER;
 
-	unique_pidl_absolute recycleBinPidl;
-	hr = SHGetKnownFolderIDList(FOLDERID_RecycleBinFolder, KF_FLAG_DEFAULT, nullptr,
-		wil::out_param(recycleBinPidl));
-
-	bool isRecycleBin = SUCCEEDED(hr) && ArePidlsEquivalent(pidlDirectory, recycleBinPidl.get());
+	bool isRecycleBin = false;
+	if (optIsRecycleBin.has_value())
+	{
+		isRecycleBin = *optIsRecycleBin;
+	}
+	else
+	{
+		unique_pidl_absolute recycleBinPidl;
+		hr = SHGetKnownFolderIDList(FOLDERID_RecycleBinFolder, KF_FLAG_DEFAULT, nullptr,
+			wil::out_param(recycleBinPidl));
+		isRecycleBin = SUCCEEDED(hr) && ArePidlsEquivalent(pidlDirectory, recycleBinPidl.get());
+	}
 
 	// SHGDN_INFOLDER | SHGDN_FORPARSING is used to ensure that the name retrieved for a filesystem
 	// file contains an extension, even if extensions are hidden in Windows Explorer. When using
@@ -469,7 +477,18 @@ void ShellBrowserImpl::OnNavigationComitted(const NavigationRequest *request)
 void ShellBrowserImpl::AddNavigationItems(const NavigationRequest *request,
 	const std::vector<PidlChild> &itemPidls)
 {
-	auto items = GetItemInformationFromPidls(request, itemPidls);
+	std::vector<ItemInfo_t> items;
+	if (request->IsFastPath())
+	{
+		items = request->GetFastPathItems();
+	}
+	else
+	{
+		items = GetItemInformationFromPidls(request, itemPidls);
+	}
+
+	m_itemInfoMap.reserve(m_itemInfoMap.size() + items.size());
+	m_directoryState.awaitingAddList.reserve(m_directoryState.awaitingAddList.size() + items.size());
 
 	for (auto &item : items)
 	{
@@ -511,16 +530,22 @@ std::vector<ShellBrowserImpl::ItemInfo_t> ShellBrowserImpl::GetItemInformationFr
 		return {};
 	}
 
+	unique_pidl_absolute recycleBinPidl;
+	hr = SHGetKnownFolderIDList(FOLDERID_RecycleBinFolder, KF_FLAG_DEFAULT, nullptr,
+		wil::out_param(recycleBinPidl));
+	bool isRecycleBin = SUCCEEDED(hr) && ArePidlsEquivalent(request->GetNavigateParams().pidl.Raw(), recycleBinPidl.get());
+
 	std::vector<ItemInfo_t> items;
+	items.reserve(itemPidls.size());
 
 	for (const auto &pidl : itemPidls)
 	{
 		auto item = GetItemInformation(shellFolder.get(), request->GetNavigateParams().pidl.Raw(),
-			pidl.Raw());
+			pidl.Raw(), isRecycleBin);
 
 		if (item)
 		{
-			items.push_back(*item);
+			items.push_back(std::move(*item));
 		}
 	}
 

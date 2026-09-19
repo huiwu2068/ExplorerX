@@ -171,3 +171,25 @@ TabStorageData Tab::GetStorageData() const
 
 	return storageData;
 }
+
+bool Tab::HasPendingLazyNavigation() const
+{
+	return m_hasPendingLazyNavigation;
+}
+
+void Tab::SetPendingLazyNavigation(const NavigateParams &navigateParams)
+{
+	m_hasPendingLazyNavigation = true;
+	m_pendingNavigateParams = navigateParams;
+}
+
+void Tab::ExecutePendingLazyNavigation()
+{
+	if (m_hasPendingLazyNavigation && m_pendingNavigateParams)
+	{
+		m_hasPendingLazyNavigation = false;
+		auto params = *m_pendingNavigateParams;
+		m_pendingNavigateParams.reset();
+		m_shellBrowser->GetNavigationController()->Navigate(params);
+	}
+}

@@ -282,6 +282,8 @@ void TabContainer::OnTabSelected(const Tab &tab)
 
 	m_iPreviousTabSelectionId = tab.GetId();
 
+	const_cast<Tab &>(tab).ExecutePendingLazyNavigation();
+
 	m_tabEvents->NotifySelected(tab);
 }
 
@@ -451,7 +453,14 @@ Tab &TabContainer::SetUpNewTab(Tab &tab, NavigateParams &navigateParams,
 		OnTabSelected(tab);
 	}
 
-	tab.GetShellBrowser()->GetNavigationController()->Navigate(navigateParams);
+	if (tabSettings.lazyNavigate)
+	{
+		tab.SetPendingLazyNavigation(navigateParams);
+	}
+	else
+	{
+		tab.GetShellBrowser()->GetNavigationController()->Navigate(navigateParams);
+	}
 
 	return tab;
 }

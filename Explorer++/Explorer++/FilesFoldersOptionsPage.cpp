@@ -59,6 +59,12 @@ std::unique_ptr<ResizableDialogHelper> FilesFoldersOptionsPage::InitializeResize
 		MovingType::None, SizingType::Horizontal);
 	controls.emplace_back(GetDlgItem(GetDialog(), IDC_USE_NATURAL_SORT_ORDER), MovingType::None,
 		SizingType::Horizontal);
+	controls.emplace_back(GetDlgItem(GetDialog(), IDC_GROUP_PERFORMANCE), MovingType::None,
+		SizingType::Horizontal);
+	controls.emplace_back(GetDlgItem(GetDialog(), IDC_SETTINGS_CHECK_FASTPATH), MovingType::None,
+		SizingType::Horizontal);
+	controls.emplace_back(GetDlgItem(GetDialog(), IDC_SETTINGS_CHECK_LAZY_TABS), MovingType::None,
+		SizingType::Horizontal);
 	return std::make_unique<ResizableDialogHelper>(GetDialog(), controls);
 }
 
@@ -364,6 +370,12 @@ void FilesFoldersOptionsPage::SaveSettings()
 
 	m_config->globalFolderSettings.useNaturalSortOrder =
 		(IsDlgButtonChecked(GetDialog(), IDC_USE_NATURAL_SORT_ORDER) == BST_CHECKED);
+
+	m_config->enableFastPathIO =
+		(IsDlgButtonChecked(GetDialog(), IDC_SETTINGS_CHECK_FASTPATH) == BST_CHECKED);
+
+	m_config->enableLazyTabRestoration =
+		(IsDlgButtonChecked(GetDialog(), IDC_SETTINGS_CHECK_LAZY_TABS) == BST_CHECKED);
 
 	hCBSize = GetDlgItem(GetDialog(), IDC_COMBO_FILESIZES);
 

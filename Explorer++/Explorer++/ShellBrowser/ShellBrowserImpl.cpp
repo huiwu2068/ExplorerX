@@ -510,6 +510,11 @@ void ShellBrowserImpl::CycleViewMode(bool cycleForward)
 	SetViewMode(newViewMode);
 }
 
+bool ShellBrowserImpl::IsFastPathIOEnabled() const
+{
+	return m_config ? m_config->enableFastPathIO : true;
+}
+
 SortMode ShellBrowserImpl::GetSortMode() const
 {
 	return m_folderSettings.sortMode;
@@ -931,8 +936,8 @@ BasicItemInfo_t ShellBrowserImpl::getBasicItemInfo(int internalIndex) const
 	const ItemInfo_t &itemInfo = m_itemInfoMap.at(internalIndex);
 
 	BasicItemInfo_t basicItemInfo;
-	basicItemInfo.pidlComplete.reset(ILCloneFull(itemInfo.pidlComplete.Raw()));
-	basicItemInfo.pridl.reset(ILCloneChild(itemInfo.pridl.Raw()));
+	basicItemInfo.pidlComplete.borrow(itemInfo.pidlComplete.Raw());
+	basicItemInfo.pridl.borrow(itemInfo.pridl.Raw());
 	basicItemInfo.wfd = itemInfo.wfd;
 	basicItemInfo.isFindDataValid = itemInfo.isFindDataValid;
 	StringCchCopy(basicItemInfo.szDisplayName, std::size(basicItemInfo.szDisplayName),

@@ -5,6 +5,7 @@
 #pragma once
 
 #include "NavigateParams.h"
+#include "ItemData.h"
 #include "../Helper/Pidl.h"
 #include "../Helper/WeakPtr.h"
 #include "../Helper/WeakPtrFactory.h"
@@ -51,6 +52,10 @@ public:
 	// This will return the set of enumerated items, to be used when the navigation is in the
 	// `WillCommit` or `Committed` state.
 	const std::vector<PidlChild> &GetItems() const;
+	bool IsFastPath() const;
+	const std::vector<ItemInfo_t> &GetFastPathItems() const;
+	std::vector<ItemInfo_t> &GetFastPathItems();
+
 
 	// Indicates whether the enumeration process was stopped early. Note that this is independent of
 	// whether the navigation is ultimately committed or cancelled. That is, it's up to the caller
@@ -77,6 +82,9 @@ private:
 
 	State m_state = State::NotStarted;
 	std::vector<PidlChild> m_items;
+	bool m_isFastPath = false;
+	std::vector<ItemInfo_t> m_fastPathItems;
+
 
 	WeakPtrFactory<NavigationRequest> m_weakPtrFactory{ this };
 };

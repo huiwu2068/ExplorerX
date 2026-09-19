@@ -102,7 +102,13 @@ std::optional<int> AsyncIconFetcherImpl::MaybeGetCachedIconIndex(PCIDLIST_ABSOLU
 		return std::nullopt;
 	}
 
-	return m_cachedIcons->MaybeGetIconIndex(itemPath);
+	auto iconIndex = m_cachedIcons->MaybeGetIconIndex(itemPath);
+	if (iconIndex)
+	{
+		return iconIndex;
+	}
+
+	return m_cachedIcons->MaybeGetExtensionIconIndex(itemPath);
 }
 
 int AsyncIconFetcherImpl::GetDefaultIconIndex(PCIDLIST_ABSOLUTE pidl) const

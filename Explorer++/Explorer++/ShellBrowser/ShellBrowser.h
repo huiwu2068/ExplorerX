@@ -50,6 +50,7 @@ public:
 
 	virtual bool IsAutoArrangeEnabled() const = 0;
 	virtual void SetAutoArrangeEnabled(bool enabled) = 0;
+	virtual bool IsFastPathIOEnabled() const { return false; }
 	virtual bool CanAutoSizeColumns() const = 0;
 	virtual void AutoSizeColumns() = 0;
 

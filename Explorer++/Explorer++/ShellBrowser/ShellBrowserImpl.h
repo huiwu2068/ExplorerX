@@ -9,6 +9,7 @@
 #include "Columns.h"
 #include "DirectoryWatcher.h"
 #include "FolderSettings.h"
+#include "ItemData.h"
 #include "MainFontSetter.h"
 #include "NavigationManager.h"
 #include "ScopedBrowserCommandTarget.h"
@@ -92,6 +93,7 @@ public:
 	const FolderColumns &GetAllColumnSets() const override;
 	bool IsAutoArrangeEnabled() const override;
 	void SetAutoArrangeEnabled(bool enabled) override;
+	bool IsFastPathIOEnabled() const override;
 	bool CanAutoSizeColumns() const override;
 	void AutoSizeColumns() override;
 	bool CanCreateNewFolder() const override;
@@ -180,31 +182,7 @@ protected:
 	const NavigationManager *GetNavigationManager() const override;
 
 private:
-	struct ItemInfo_t
-	{
-		PidlAbsolute pidlComplete;
-		PidlChild pridl;
-		WIN32_FIND_DATA wfd;
-		bool isFindDataValid;
-		std::wstring parsingName;
-		std::wstring displayName;
-		std::wstring editingName;
-
-		/* These are only used for drives. They are
-		needed for when a drive is removed from the
-		system, in which case the drive name is needed
-		so that the removed drive can be found. */
-		BOOL bDrive;
-		TCHAR szDrive[4];
-
-		/* Used for temporary sorting in details mode (i.e.
-		when items need to be rearranged). */
-		int iRelativeSort;
-
-		ItemInfo_t() : wfd({}), isFindDataValid(false), bDrive(FALSE)
-		{
-		}
-	};
+	using ItemInfo_t = ::ItemInfo_t;
 
 	struct AwaitingAdd_t
 	{
@@ -375,7 +353,8 @@ private:
 	/* Browsing support. */
 	void OnNavigationStarted(const NavigationRequest *request);
 	static std::optional<ItemInfo_t> GetItemInformation(IShellFolder *shellFolder,
-		PCIDLIST_ABSOLUTE pidlDirectory, PCITEMID_CHILD pidlChild);
+		PCIDLIST_ABSOLUTE pidlDirectory, PCITEMID_CHILD pidlChild,
+		std::optional<bool> optIsRecycleBin = std::nullopt);
 	void ChangeFolders(const PidlAbsolute &directory);
 	void PrepareToChangeFolders();
 	void ClearPendingResults();
@@ -688,6 +667,7 @@ private:
 	ClipboardStore *const m_clipboardStore;
 	const ResourceLoader *const m_resourceLoader;
 	FolderSettings m_folderSettings;
+	mutable bool m_bSortIsRecycleBin = false;
 
 	int m_middleButtonItem;
 

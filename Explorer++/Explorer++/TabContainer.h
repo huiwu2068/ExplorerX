@@ -34,6 +34,7 @@ struct TabSettings
 	std::optional<Tab::LockState> lockState;
 	std::optional<int> index;
 	std::optional<bool> selected;
+	bool lazyNavigate = false;
 
 	// This is only used in tests.
 	bool operator==(const TabSettings &) const = default;

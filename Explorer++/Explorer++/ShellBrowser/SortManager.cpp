@@ -16,6 +16,8 @@
 
 void ShellBrowserImpl::SortFolder()
 {
+	m_bSortIsRecycleBin = (CompareVirtualFolders(CSIDL_BITBUCKET) != FALSE);
+
 	SendMessage(m_listView, LVM_SORTITEMS, reinterpret_cast<WPARAM>(this),
 		reinterpret_cast<LPARAM>(SortStub));
 
@@ -51,12 +53,12 @@ int CALLBACK ShellBrowserImpl::Sort(int InternalIndex1, int InternalIndex2) cons
 	/* Folders will by default be sorted separately from files,
 	except in the recycle bin. */
 	if (!m_config->globalFolderSettings.displayMixedFilesAndFolders && isFolder1 && !isFolder2
-		&& !CompareVirtualFolders(CSIDL_BITBUCKET))
+		&& !m_bSortIsRecycleBin)
 	{
 		comparisonResult = -1;
 	}
 	else if (!m_config->globalFolderSettings.displayMixedFilesAndFolders && !isFolder1 && isFolder2
-		&& !CompareVirtualFolders(CSIDL_BITBUCKET))
+		&& !m_bSortIsRecycleBin)
 	{
 		comparisonResult = 1;
 	}

@@ -187,6 +187,11 @@ void Explorerplusplus::CreateTabsFromStorageData(const std::vector<TabStorageDat
 		auto tabSettings = loadedTab.tabSettings;
 		tabSettings.index = index;
 
+		if (m_config->enableLazyTabRestoration && index != selectedTab)
+		{
+			tabSettings.lazyNavigate = true;
+		}
+
 		auto validatedColumns = loadedTab.columns;
 		ValidateColumns(validatedColumns);
 

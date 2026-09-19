@@ -174,6 +174,8 @@ void LoadFromNode(IXMLDOMNode *settingsNode, Config &config)
 		config.everythingSearchSettings.alternateRowColors);
 	GetBoolSetting(settingsNode, L"ExtendTabControl", config.extendTabControl);
 	GetBoolSetting(settingsNode, L"ForceSize", config.globalFolderSettings.forceSize);
+	GetBoolSetting(settingsNode, L"EnableFastPathIO", config.enableFastPathIO);
+	GetBoolSetting(settingsNode, L"EnableLazyTabRestoration", config.enableLazyTabRestoration);
 
 	HRESULT hr = GetBoolSetting(settingsNode, L"OpenContainerFiles", config.openContainerFiles);
 
@@ -395,6 +397,10 @@ void SaveToNode(IXMLDOMDocument *xmlDocument, IXMLDOMElement *settingsNode, cons
 		L"ExtendTabControl", XMLSettings::EncodeBoolValue(config.extendTabControl.get()));
 	XMLSettings::WriteStandardSetting(xmlDocument, settingsNode, SETTING_NODE_NAME, L"ForceSize",
 		XMLSettings::EncodeBoolValue(config.globalFolderSettings.forceSize));
+	XMLSettings::WriteStandardSetting(xmlDocument, settingsNode, SETTING_NODE_NAME,
+		L"EnableFastPathIO", XMLSettings::EncodeBoolValue(config.enableFastPathIO));
+	XMLSettings::WriteStandardSetting(xmlDocument, settingsNode, SETTING_NODE_NAME,
+		L"EnableLazyTabRestoration", XMLSettings::EncodeBoolValue(config.enableLazyTabRestoration));
 	XMLSettings::WriteStandardSetting(xmlDocument, settingsNode, SETTING_NODE_NAME,
 		L"OpenContainerFiles", XMLSettings::EncodeBoolValue(config.openContainerFiles));
 	XMLSettings::WriteStandardSetting(xmlDocument, settingsNode, SETTING_NODE_NAME,
