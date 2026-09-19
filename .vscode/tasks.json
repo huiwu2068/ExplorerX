@@ -8,7 +8,7 @@
       "args": [
         "/d",
         "/c",
-        "call \"${env:ProgramFiles(x86)}\\Microsoft Visual Studio\\2022\\BuildTools\\Common7\\Tools\\VsDevCmd.bat\" -arch=x64 -host_arch=x64 && msbuild \"${workspaceFolder}\\Explorer++\\Explorer++.sln\" /m /p:Configuration=Debug /p:Platform=x64"
+        "call \"${env:ProgramFiles(x86)}\\Microsoft Visual Studio\\2022\\BuildTools\\Common7\\Tools\\VsDevCmd.bat\" -arch=x64 -host_arch=x64 && msbuild \"${workspaceFolder}\\Explorer++\\ExplorerX\\ExplorerX.vcxproj\" /m /p:Configuration=Debug /p:Platform=x64 /p:SolutionDir=${workspaceFolder}\\Explorer++\\"
       ],
       "group": {
         "kind": "build",
@@ -28,7 +28,7 @@
       "args": [
         "/d",
         "/c",
-        "call \"${env:ProgramFiles(x86)}\\Microsoft Visual Studio\\2022\\BuildTools\\Common7\\Tools\\VsDevCmd.bat\" -arch=x64 -host_arch=x64 && msbuild \"${workspaceFolder}\\Explorer++\\Explorer++.sln\" /m /p:Configuration=Release /p:Platform=x64"
+        "call \"${env:ProgramFiles(x86)}\\Microsoft Visual Studio\\2022\\BuildTools\\Common7\\Tools\\VsDevCmd.bat\" -arch=x64 -host_arch=x64 && msbuild \"${workspaceFolder}\\Explorer++\\ExplorerX\\ExplorerX.vcxproj\" /m /p:Configuration=Release /p:Platform=x64 /p:SolutionDir=${workspaceFolder}\\Explorer++\\"
       ],
       "problemMatcher": "$msCompile",
       "presentation": {
@@ -44,7 +44,7 @@
       "args": [
         "/d",
         "/c",
-        "call \"${env:ProgramFiles(x86)}\\Microsoft Visual Studio\\2022\\BuildTools\\Common7\\Tools\\VsDevCmd.bat\" -arch=x64 -host_arch=x64 && \"C:\\Users\\lzh\\AppData\\Local\\Tools\\msbuild-compdb\\msbuild-compdb.exe\" --build \"${workspaceFolder}\\Explorer++\\Explorer++.sln\" --output \"${workspaceFolder}\\compile_commands.json\" -- /m /t:Rebuild /p:Configuration=Debug /p:Platform=x64"
+        "call \"${env:ProgramFiles(x86)}\\Microsoft Visual Studio\\2022\\BuildTools\\Common7\\Tools\\VsDevCmd.bat\" -arch=x64 -host_arch=x64 && \"C:\\Users\\lzh\\AppData\\Local\\Tools\\msbuild-compdb\\msbuild-compdb.exe\" --build \"${workspaceFolder}\\Explorer++\\ExplorerX\\ExplorerX.vcxproj\" --output \"${workspaceFolder}\\compile_commands.json\" -- /m /t:Rebuild /p:Configuration=Debug /p:Platform=x64 /p:SolutionDir=${workspaceFolder}\\Explorer++\\"
       ],
       "problemMatcher": "$msCompile",
       "presentation": {

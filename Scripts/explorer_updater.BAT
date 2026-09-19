@@ -1,18 +1,18 @@
 @ECHO OFF
 REM # encoding: IBM850
 : DATE: 28/04/2020 12:36
-: FUNC: Update Explorer++ (explorerplusplus.com) and log it in explorer_updater.log 
+: FUNC: Update ExplorerX and log it in explorer_updater.log
 : Needs '7za' tool (7-zip.org) in the path
 
 ECHO ===========================================================
-ECHO Explorer++ updater v1.0
-If NOT EXIST Explorer++.exe GOTO letsgo
-FOR /f "delims=" %%A in ('powershell "(Get-Item -path 'Explorer++.exe').VersionInfo.ProductVersion"') DO SET oldVer=%%A
-ECHO Actual Explorer++ version: v%oldVer%
+ECHO ExplorerX updater v1.0
+If NOT EXIST ExplorerX.exe GOTO letsgo
+FOR /f "delims=" %%A in ('powershell "(Get-Item -path 'ExplorerX.exe').VersionInfo.ProductVersion"') DO SET oldVer=%%A
+ECHO Actual ExplorerX version: v%oldVer%
 
 :letsgo
 IF %1d == d GOTO sintax
-TASKLIST /FI "IMAGENAME eq Explorer++.exe" | FINDSTR /I "Explorer++.exe" > nul
+TASKLIST /FI "IMAGENAME eq ExplorerX.exe" | FINDSTR /I "ExplorerX.exe" > nul
 IF "%ERRORLEVEL%" == "0" GOTO close
 GOTO extract
 
@@ -30,15 +30,15 @@ GOTO end
 
 :close
 SET task=y
-SET /p task=WARNING: Explorer++ is running. Close it now [y]/n ?  
+SET /p task=WARNING: ExplorerX is running. Close it now [y]/n ?
 IF %task% == n GOTO end
-TASKKILL /IM Explorer++.exe
+TASKKILL /IM ExplorerX.exe
 
 :extract
 WHERE 7za.exe >nul 2>&1 && ECHO Processing... || ECHO ERROR: The '7za.exe' tool not found! && GOTO end
 7za.exe e %1 -y
-FOR /f "delims=" %%A in ('powershell "(Get-Item -path 'Explorer++.exe').VersionInfo.ProductVersion"') DO SET newVer=%%A
-ECHO New Explorer++ version installed: v%newVer%
+FOR /f "delims=" %%A in ('powershell "(Get-Item -path 'ExplorerX.exe').VersionInfo.ProductVersion"') DO SET newVer=%%A
+ECHO New ExplorerX version installed: v%newVer%
 ECHO [%date:~0,2%-%date:~3,2%-%date:~6,4% %time:~0,2%:%time:~3,2%:%time:~6,2%] - %oldVer% =^> %newVer% >> explorer_updater.log 
 
 :end

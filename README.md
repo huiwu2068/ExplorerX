@@ -1,75 +1,66 @@
-[![Build](https://github.com/huiwu2068/explorerplusplus/actions/workflows/build.yml/badge.svg)](https://github.com/huiwu2068/explorerplusplus/actions/workflows/build.yml)
-[![Documentation Status](https://readthedocs.org/projects/explorerplusplus/badge/?version=latest)](https://explorerplusplus.readthedocs.io/en/latest/?badge=latest)
-[![Crowdin](https://d322cqt584bo4o.cloudfront.net/explorerplusplus/localized.svg)](https://crowdin.com/project/explorerplusplus)
+# ExplorerX
 
-# Explorer++
+ExplorerX is a fast, portable Windows file manager that preserves the native Shell experience while improving multi-folder work, fast discovery, and large-directory browsing.
 
-Explorer++ is a lightweight and fast file manager for Windows.
+[简体中文](README.zh-CN.md)
 
-## Features
+![ExplorerX overview: tabs, dual-pane workspace, Everything search, and native Details view](assets/screenshots/explorerx-overview.png)
 
-* With the option to save to the registry or a configuration file, Explorer++ is __completely portable__
-* __Tabbed browsing__ for easy management of multiple folders
-* Display window shows previews of files as they are selected
-* __Easy-to-remember keyboard shortcuts__ for quick navigation
-* Customizable user interface
-* Full drag-and-drop support with other applications, including Windows Explorer
-* Advanced file operations such as merging and splitting supported
-* Change file dates and attributes
-* Save a directory listing
-* Bookmark tabs
-* __Search__ for files using their name and attributes
-* Switch between icon, list, detail, thumbnail and tile view
-* Filter files
+## What ExplorerX adds
 
-### Features in this fork (v1.5.0)
+| Scenario | ExplorerX improvement |
+| --- | --- |
+| Find files quickly | Integrated [Everything](https://www.voidtools.com/) search opens results in a dedicated tab, with global and current-folder scopes. |
+| Work across folders | Dual panes and tabs keep multiple locations available for copy, comparison, and organization work. |
+| Browse folder structure | Details view supports Directory Opus-style in-place folder expansion: click the chevron or use the Left/Right keys without leaving the list. |
+| Browse large folders | A fast path for physical directories, responsive sorting, extension-icon caching, and lazy tab restoration reduce unnecessary waits. |
+| Command-line workflow | Open Windows Terminal at the active folder. |
+| Keep the Windows experience | Reuses the native Windows context menu and Shell extensions, so installed extensions such as 7-Zip, Git, VS Code, WinRAR, and security tools continue to work through Windows. |
 
-* **Everything toolbar search:** searches run only after pressing Enter or clicking Search, so typing never switches views unexpectedly. Every submitted search opens in its own result tab.
-* **Native-style Everything results:** open files or folders with the keyboard or mouse, use the Windows Shell context menu, and optionally display alternating row colors.
-* **Sortable search results:** sort by name, path, size, or modified time by clicking a column header. Results default to modified time descending (newest first).
-* **Dual-pane browsing:** enable it directly from **View > Dual pane**, then move tabs between panes from the tab context menu. No command-line feature flag is required.
-* **Windows Terminal integration:** open Windows Terminal in the active folder from the toolbar.
-* **Configurable default folder view:** new folders use Details view by default, and the default can be changed in Options.
-* **Safer tab closing:** double-clicking the last tab closes the tab without unexpectedly closing the Explorer++ window.
+## Key features
 
-## v1.5.0 Downloads
+### Everything search
 
-* [Explorer++ x64 executable](https://github.com/huiwu2068/explorerplusplus/releases/download/v1.5.0/Explorer%2B%2B_x64_v1.5.0.exe)
-* [Explorer++ x64 portable package](https://github.com/huiwu2068/explorerplusplus/releases/download/v1.5.0/Explorer%2B%2B_x64_portable_v1.5.0.zip)
-* [Release notes](https://github.com/huiwu2068/explorerplusplus/releases/tag/v1.5.0)
+- Queries Everything through IPC and displays results in a reusable results tab.
+- Choose a global search or limit it to the current folder while retaining common matching options.
+- Search, loading, and sorting retain native Windows file operations instead of replacing them with a custom context menu.
 
-## Author and Maintainer
+### Dual panes and tabs
 
-This fork and its v1.5.0 custom features are developed and maintained by **Hank Li**.
+- View two locations side by side and use tabs to switch working sets quickly.
+- Well suited to frequent copy, comparison, and archive workflows.
 
-## Upstream Development Builds
+### Opus-style folder expansion
 
-### 32-bit
+- Expand folders into a hierarchy directly within the Details view.
+- Use the expand chevron, or `Right` to expand and `Left` to collapse, without repeatedly entering and leaving folders.
+- Child items load through an asynchronous fast path; hierarchical sorting, selection, drag and drop, and the native Shell context menu remain available.
 
-[explorerpp_x86.zip](https://download.explorerplusplus.com/dev/latest/explorerpp_x86.zip)
+### Native, lightweight performance improvements
 
-### 64-bit
+- Physical local folders use batch reads based on `GetFileInformationByHandleEx`; virtual folders, network locations, and MTP devices continue through a compatible Shell path.
+- Zero-copy sorting, extension-icon caching, lazy tab restoration, and configuration dirty tracking reduce redundant startup and large-folder work.
+- No resident service is required; slow or failed external calls do not block the UI thread.
 
-[explorerpp_x64.zip](https://download.explorerplusplus.com/dev/latest/explorerpp_x64.zip)
+### Portable use
 
-### ARM64
+ExplorerX supports both registry-based configuration and a configuration file alongside the executable, making it suitable for a USB drive or a self-contained work directory.
 
-[explorerpp_arm64.zip](https://download.explorerplusplus.com/dev/latest/explorerpp_arm64.zip)
+## Screenshot
 
-### Translations
+The image above is a real ExplorerX runtime capture. It shows the Everything search entry at the upper right, the tabbed workspace, and the Windows Shell Details view with native item type information. See the feature descriptions above for dual-pane operation and in-place folder expansion.
 
-[explorerpp_translations.zip](https://download.explorerplusplus.com/dev/latest/explorerpp_translations.zip)
+## Build
 
-For a full list of builds, see https://explorerplusplus.com/builds.
+ExplorerX is built with Visual Studio 2022 Build Tools and the Windows SDK. See
+[BUILDING.md](BUILDING.md) for the portable command-line build instructions.
 
-## Building Explorer++
+## Upstream and license
 
-For instructions on how to build Explorer++, see [BUILDING.md](BUILDING.md).
+ExplorerX is an independently maintained, modified derivative of
+[Explorer++](https://github.com/derceg/explorerplusplus), originally created by
+David Erceg. ExplorerX-specific modifications and maintenance are by Hank Li.
 
-## Documentation
-
-Documentation is available online at [Read the Docs](https://explorerplusplus.readthedocs.io/en/latest/).
-
-## Translations
-
-Translations are managed with [Crowdin](https://crowdin.com/project/explorerplusplus). To contribute to a translation, sign up with Crowdin, then edit the file corresponding to your language. If your language isn't listed, use the contact link shown on the project page to request it.
+ExplorerX is licensed under the GNU General Public License, version 3.0. Original
+copyright notices and license terms are retained throughout the source tree. When
+distributing a binary, provide the corresponding source code under GPL-3.0.

@@ -34,18 +34,18 @@ $architecture = switch ($Platform) {
 $repositoryRoot = $PWD.Path
 
 $applicationFiles = @(
-    "$repositoryRoot\Explorer++\Explorer++\$Platform\$Configuration\Explorer++.exe"
+    "$repositoryRoot\Explorer++\Explorer++\$Platform\$Configuration\ExplorerX.exe"
     "$repositoryRoot\Documentation\User\History.txt"
     "$repositoryRoot\Documentation\User\License.txt"
     "$repositoryRoot\Documentation\User\Readme.txt"
 )
 
 New-Artifact `
-    -Name "explorerpp_$architecture.zip" `
+    -Name "explorerx_$architecture.zip" `
     -Files $applicationFiles
 
 New-Artifact `
-    -Name "explorerpp_${architecture}_symbols.zip" `
+    -Name "explorerx_${architecture}_symbols.zip" `
     -Files "$repositoryRoot\Explorer++\Explorer++\$Platform\$Configuration\Explorer++.pdb"
 
 New-Artifact `

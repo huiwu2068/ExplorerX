@@ -2,12 +2,12 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug Explorer++ (x64)",
+      "name": "Debug ExplorerX (x64)",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}\\Explorer++\\Explorer++\\x64\\Debug\\Explorer++.exe",
+      "program": "${workspaceFolder}\\Explorer++\\ExplorerX\\x64\\Debug\\ExplorerX.exe",
       "args": [],
-      "cwd": "${workspaceFolder}\\Explorer++\\Explorer++\\x64\\Debug",
+      "cwd": "${workspaceFolder}\\Explorer++\\ExplorerX\\x64\\Debug",
       "preLaunchTask": "build: Debug x64",
       "stopAtEntry": false,
       "console": "integratedTerminal"

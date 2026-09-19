@@ -1,31 +1,19 @@
-Explorer++
-----------
+ExplorerX
+---------
 
-Copyright (c) 2005-2011 David Erceg
+ExplorerX is a portable Windows file manager. Extract the package and run
+ExplorerX.exe; no installation is required.
 
-Explorer++ is free software released under
-the GNU General Public License.
+ExplorerX is an independently maintained, modified derivative of Explorer++,
+originally created by David Erceg. ExplorerX modifications and maintenance are
+by Hank Li.
 
-www.explorerplusplus.com
+ExplorerX is free software released under the GNU General Public License,
+version 3.0. The complete corresponding source code and project information are
+available at:
 
+https://github.com/huiwu2068/explorerplusplus
 
-About Explorer++
-----------------
-Explorer++ is a free multi-tab file manager for Windows.
-Available on Windows XP and above, it features the
-same familiar interface as Windows Explorer, while
-introducing several enhancements and improvements for a
-much richer file browsing experience.
+Upstream source:
 
-
-Using Explorer++
-----------------
-Explorer++ can simply be extracted and run.
-There is no need to install it.
-
-
-Reporting Problems
-------------------
-Please send any bugs or problems to:
-
-david@explorerplusplus.com
+https://github.com/derceg/explorerplusplus

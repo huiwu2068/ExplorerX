@@ -1,0 +1,4 @@
+#include "ExplorerX.rc"
+#include "ExplorerXVersionInfo.rc"
+#include "ExplorerX_NoTranslation.rc"
+#include "ExplorerXTerminal.rc"

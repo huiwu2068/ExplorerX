@@ -1,5 +1,5 @@
-; This script runs Explorer++ on Win+E.
-; The Explorer++ executable must be in the same directory as this script file.
+; This script runs ExplorerX on Win+E.
+; The ExplorerX executable must be in the same directory as this script file.
 
 #NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
 #SingleInstance force ; Only one copy of this script should run at a time.
@@ -11,7 +11,7 @@ PreserveMaximizedState := false
 
 #e::
 
-if PreserveMaximizedState AND WinExist("ahk_exe explorer++.exe")
+if PreserveMaximizedState AND WinExist("ahk_exe ExplorerX.exe")
   WinActivate
 else
   Run()
@@ -20,8 +20,8 @@ return
 Run()
 {
   try {
-      Run %A_ScriptDir%\Explorer++.exe
+      Run %A_ScriptDir%\ExplorerX.exe
   } catch e {
-      MsgBox Couldn't run Explorer++.`nPlease make sure it's in the same directory as this script (%A_ScriptDir%).
+      MsgBox Couldn't run ExplorerX.`nPlease make sure it's in the same directory as this script (%A_ScriptDir%).
   }
 }
