@@ -9,6 +9,6 @@ namespace AppInfo
 
 inline constexpr wchar_t NAME[] = L"ExplorerX";
 inline constexpr wchar_t PROJECT_URL[] =
-	L"https://github.com/huiwu2068/explorerplusplus";
+	L"https://github.com/huiwu2068/ExplorerX";
 
 }

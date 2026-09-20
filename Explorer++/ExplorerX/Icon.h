@@ -42,5 +42,6 @@ enum class Icon
 	SplitFiles,
 	Undo,
 	Up,
-	Views
+	Views,
+	WindowsTerminal
 };

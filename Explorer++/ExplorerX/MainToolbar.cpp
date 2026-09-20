@@ -60,8 +60,7 @@ constexpr auto BUTTON_ICON_MAPPINGS = std::to_array<ButtonIconMapping>({
 	{ MainToolbarButton::AddBookmark, Icon::AddBookmark },
 	{ MainToolbarButton::NewTab, Icon::NewTab },
 	{ MainToolbarButton::OpenCommandPrompt, Icon::CommandLine },
-	// Use a tiled terminal-style glyph so this entry is visually distinct from Command Prompt.
-	{ MainToolbarButton::WindowsTerminal, Icon::Views },
+	{ MainToolbarButton::WindowsTerminal, Icon::WindowsTerminal },
 	{ MainToolbarButton::Bookmarks, Icon::Bookmarks },
 	{ MainToolbarButton::DeletePermanently, Icon::DeletePermanently },
 	{ MainToolbarButton::SplitFile, Icon::SplitFiles },

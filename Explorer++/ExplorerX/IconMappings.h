@@ -57,7 +57,8 @@ using IconMapping = std::unordered_map<Icon, std::map<int, UINT>>;
 	{ Icon::SplitFiles, { ICON_SIZE_MAPPINGS(IDB_SPLIT_FILES##SetSuffix) } }, \
 	{ Icon::Undo, { ICON_SIZE_MAPPINGS(IDB_UNDO##SetSuffix) } }, \
 	{ Icon::Up, { ICON_SIZE_MAPPINGS(IDB_UP##SetSuffix) } }, \
-	{ Icon::Views, { ICON_SIZE_MAPPINGS(IDB_VIEWS##SetSuffix) } }
+	{ Icon::Views, { ICON_SIZE_MAPPINGS(IDB_VIEWS##SetSuffix) } }, \
+	{ Icon::WindowsTerminal, { ICON_SIZE_MAPPINGS(IDB_WINDOWS_TERMINAL##SetSuffix) } }
 // clang-format on
 
 const IconMapping ICON_RESOURCE_MAPPINGS_COLOR = {

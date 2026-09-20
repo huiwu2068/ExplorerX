@@ -1961,6 +1961,12 @@
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
   </ItemGroup>
+  <!-- These libraries are required by Helper consumers and belong on the final executable link. -->
+  <ItemDefinitionGroup>
+    <Link>
+      <AdditionalDependencies>iphlpapi.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
   <ProjectExtensions>

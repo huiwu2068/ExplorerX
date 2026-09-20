@@ -974,6 +974,13 @@
   <ItemGroup>
     <Natvis Include="Pidl.natvis" />
   </ItemGroup>
+  <!-- Helper is a static library; system libraries are linked by the final executable.
+       Keeping them out of the librarian step avoids duplicate import-descriptor warnings. -->
+  <ItemDefinitionGroup>
+    <Lib>
+      <AdditionalDependencies></AdditionalDependencies>
+    </Lib>
+  </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
 </Project>
