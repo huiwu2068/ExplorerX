@@ -158,6 +158,21 @@ void FilesFoldersOptionsPage::InitializeControls()
 		CheckDlgButton(GetDialog(), IDC_USE_NATURAL_SORT_ORDER, BST_CHECKED);
 	}
 
+	if (m_config->enableFastPathIO)
+	{
+		CheckDlgButton(GetDialog(), IDC_SETTINGS_CHECK_FASTPATH, BST_CHECKED);
+	}
+
+	if (m_config->enableLazyTabRestoration)
+	{
+		CheckDlgButton(GetDialog(), IDC_SETTINGS_CHECK_LAZY_TABS, BST_CHECKED);
+	}
+
+	if (m_config->enableExpandableFolders)
+	{
+		CheckDlgButton(GetDialog(), IDC_SETTINGS_CHECK_EXPANDABLE_FOLDERS, BST_CHECKED);
+	}
+
 	AddTooltipForControl(m_tooltipWindow, GetDlgItem(GetDialog(), IDC_USE_NATURAL_SORT_ORDER),
 		m_resourceLoader->LoadString(IDS_USE_NATURAL_SORT_ORDER_TOOLTIP));
 
