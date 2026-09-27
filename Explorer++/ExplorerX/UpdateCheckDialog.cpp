@@ -25,7 +25,7 @@
 
 const TCHAR UpdateCheckDialogPersistentSettings::SETTINGS_KEY[] = _T("UpdateCheck");
 const TCHAR UpdateCheckDialog::VERSION_FILE_URL[] =
-	_T("https://raw.githubusercontent.com/huiwu2068/explorerplusplus/master/VERSION.txt");
+	_T("https://raw.githubusercontent.com/huiwu2068/ExplorerX/master/VERSION.txt");
 
 UpdateCheckDialog *UpdateCheckDialog::Create(const ResourceLoader *resourceLoader, HWND hParent)
 {

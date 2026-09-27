@@ -7,6 +7,7 @@
 #include "HistoryEntry.h"
 #include "../Helper/Pidl.h"
 #include <optional>
+#include <vector>
 
 class NavigationRequest;
 
@@ -46,6 +47,8 @@ public:
 	// match the request pidl.
 	PidlAbsolute requestPidl;
 	PidlAbsolute pidl;
+
+	std::vector<PidlAbsolute> filesToSelect;
 
 	std::optional<int> historyEntryId;
 	HistoryEntryType historyEntryType = HistoryEntryType::AddEntry;

@@ -5,6 +5,7 @@
 #include "stdafx.h"
 #include "ExplorerX.h"
 #include "AddressBar.h"
+#include "AddressBarView.h"
 #include "AppServices.h"
 #include "BrowserCommands.h"
 #include "BrowserList.h"
@@ -407,6 +408,40 @@ void Explorerplusplus::CancelActiveEverythingSearchRequest()
 	}
 	KillTimer(m_hwnd, EVERYTHING_SEARCH_TIMER_ID);
 	m_everythingSearchController.CancelPendingRequests();
+}
+
+void Explorerplusplus::RefreshEverythingSearchTab(int tabId)
+{
+	auto stateIterator = m_everythingSearchTabs.find(tabId);
+	if (stateIterator == m_everythingSearchTabs.end())
+	{
+		return;
+	}
+	auto &state = stateIterator->second;
+	const auto expression = state.expression;
+	const auto settings = state.settings;
+	const auto currentFolder = state.currentFolder;
+	const auto sortMode = state.sortMode;
+	CancelActiveEverythingSearchRequest();
+	m_activeEverythingSearchTabId = tabId;
+	state.results.clear();
+	state.totalResults = 0;
+	if (auto *tab = state.tabContainer->MaybeGetTab(tabId))
+	{
+		tab->SetCustomName(L"Everything - 刷新中…");
+	}
+	ListView_SetItemCountEx(m_everythingSearchListView, 0, LVSICF_NOSCROLL);
+	SetTimer(m_hwnd, EVERYTHING_SEARCH_TIMER_ID, EVERYTHING_SEARCH_TIMEOUT, nullptr);
+	const auto result = m_everythingSearchController.Submit(m_hwnd, expression, settings,
+		currentFolder, sortMode);
+	if (result != EverythingSearchController::SubmitResult::Submitted)
+	{
+		KillTimer(m_hwnd, EVERYTHING_SEARCH_TIMER_ID);
+	}
+	if (result == EverythingSearchController::SubmitResult::EverythingUnavailable)
+	{
+		ShowEverythingSearchError(L"Everything is not running. Start Everything and try again.");
+	}
 }
 
 void Explorerplusplus::OnEverythingListColumnClick(const NMLISTVIEW *listView)
@@ -892,16 +927,54 @@ void Explorerplusplus::OpenDirectoryInNewWindow(PCIDLIST_ABSOLUTE pidlDirectory)
 
 void Explorerplusplus::OpenFileItem(const std::wstring &itemPath, const std::wstring &parameters)
 {
-	auto shellBrowser = GetActiveShellBrowserImpl();
-	ExecuteFileAction(m_hwnd, itemPath, L"", parameters,
-		shellBrowser->InVirtualFolder() ? L"" : shellBrowser->GetDirectoryPath().c_str());
+	std::wstring startDirectory;
+	try
+	{
+		std::filesystem::path p(itemPath);
+		if (p.has_parent_path())
+		{
+			startDirectory = p.parent_path().wstring();
+		}
+	}
+	catch (...)
+	{
+	}
+
+	if (startDirectory.empty())
+	{
+		auto shellBrowser = GetActiveShellBrowserImpl();
+		if (shellBrowser && !shellBrowser->InVirtualFolder())
+		{
+			startDirectory = shellBrowser->GetDirectoryPath();
+		}
+	}
+
+	ExecuteFileAction(m_hwnd, itemPath, L"", parameters, startDirectory.c_str());
 }
 
 void Explorerplusplus::OpenFileItem(PCIDLIST_ABSOLUTE pidlItem, const std::wstring &parameters)
 {
-	auto shellBrowser = GetActiveShellBrowserImpl();
-	ExecuteFileAction(m_hwnd, pidlItem, L"", parameters,
-		shellBrowser->InVirtualFolder() ? L"" : shellBrowser->GetDirectoryPath().c_str());
+	std::wstring startDirectory;
+	unique_pidl_absolute parentPidl(ILCloneFull(pidlItem));
+	if (parentPidl && ILRemoveLastID(parentPidl.get()))
+	{
+		WCHAR szPath[MAX_PATH];
+		if (SHGetPathFromIDListW(parentPidl.get(), szPath))
+		{
+			startDirectory = szPath;
+		}
+	}
+
+	if (startDirectory.empty())
+	{
+		auto shellBrowser = GetActiveShellBrowserImpl();
+		if (shellBrowser && !shellBrowser->InVirtualFolder())
+		{
+			startDirectory = shellBrowser->GetDirectoryPath();
+		}
+	}
+
+	ExecuteFileAction(m_hwnd, pidlItem, L"", parameters, startDirectory.c_str());
 }
 
 void Explorerplusplus::OnSize(UINT state)
@@ -982,6 +1055,11 @@ void Explorerplusplus::UpdateLayout()
 		SWP_NOZORDER | SWP_NOMOVE);
 
 	int indentRebar = rebarHeight;
+	const bool showAddressBar = m_config->showAddressBar.get();
+	const AddressBar *primaryAddressBar = m_browserPane ? m_browserPane->GetAddressBar() : nullptr;
+	const int addressBarHeight = showAddressBar && primaryAddressBar
+		? primaryAddressBar->GetView()->GetHeight()
+		: 0;
 
 	if (m_config->showStatusBar.get())
 	{
@@ -1012,16 +1090,16 @@ void Explorerplusplus::UpdateLayout()
 	RECT displayRect = { 0, 0, 0, 0 };
 	TabCtrl_AdjustRect(GetActivePane()->GetTabContainer()->GetHWND(), true, &displayRect);
 	int tabWindowHeight = std::abs(displayRect.top);
+	const bool tabsAtBottom = m_config->showTabBarAtBottom.get() && m_bShowTabBar;
+	const bool addressBarAtBottom = showAddressBar && tabsAtBottom;
+	const int topTabHeight = m_bShowTabBar && !tabsAtBottom ? tabWindowHeight : 0;
+	const int bottomTabHeight = tabsAtBottom ? tabWindowHeight : 0;
 
-	indentTop = indentRebar;
-
-	if (m_bShowTabBar)
-	{
-		if (!m_config->showTabBarAtBottom.get())
-		{
-			indentTop += tabWindowHeight;
-		}
-	}
+	indentTop = indentRebar + topTabHeight + (showAddressBar && !addressBarAtBottom ? addressBarHeight : 0);
+	const int bottomAddressBarHeight = addressBarAtBottom ? addressBarHeight : 0;
+	const int addressBarTop = addressBarAtBottom
+		? mainWindowHeight - indentBottom - addressBarHeight
+		: indentRebar + topTabHeight;
 
 	/* <---- Tab control + backing ----> */
 
@@ -1049,7 +1127,7 @@ void Explorerplusplus::UpdateLayout()
 	}
 	else
 	{
-		tabTop = mainWindowHeight - indentBottom - tabWindowHeight;
+		tabTop = mainWindowHeight - indentBottom - tabWindowHeight - bottomAddressBarHeight;
 	}
 
 	if (m_config->dualPane && m_secondaryBrowserPane)
@@ -1072,14 +1150,15 @@ void Explorerplusplus::UpdateLayout()
 		const int secondPaneWidth = paneContentWidth - firstPaneWidth;
 		m_dualPaneWorkspaceLeft = indentLeft;
 		m_dualPaneWorkspaceWidth = paneContentWidth;
-		const int holderTop =
-			(m_config->extendTabControl.get() && !m_config->showTabBarAtBottom.get()) ? indentTop
-																					  : indentRebar;
+		const int holderTop = (m_config->extendTabControl.get() && !tabsAtBottom)
+			? indentRebar + topTabHeight
+			: indentRebar;
 		int holderHeight = mainWindowHeight - indentBottom - holderTop;
-		if (m_config->extendTabControl.get() && m_config->showTabBarAtBottom.get() && m_bShowTabBar)
+		if (tabsAtBottom && m_config->extendTabControl.get())
 		{
 			holderHeight -= tabWindowHeight;
 		}
+		holderHeight -= bottomAddressBarHeight;
 
 		SetWindowPos(m_treeViewHolder->GetHWND(), nullptr, 0, holderTop, m_treeViewWidth,
 			holderHeight,
@@ -1100,9 +1179,9 @@ void Explorerplusplus::UpdateLayout()
 		}
 		const int listViewTop = indentTop;
 		int listViewHeight = mainWindowHeight - indentBottom - listViewTop;
-		if (m_config->showTabBarAtBottom.get() && m_bShowTabBar)
+		if (tabsAtBottom)
 		{
-			listViewHeight -= tabWindowHeight;
+			listViewHeight -= bottomTabHeight + bottomAddressBarHeight;
 		}
 
 		auto layoutPane = [&](BrowserPane *pane, TabBacking *backing, int left, int width)
@@ -1112,6 +1191,12 @@ void Explorerplusplus::UpdateLayout()
 				tabShowFlags);
 			SetWindowPos(pane->GetTabContainer()->GetHWND(), nullptr, 0, 0, std::max(0, width - 25),
 				tabWindowHeight, SWP_SHOWWINDOW | SWP_NOZORDER);
+			if (auto *addressBar = pane->GetAddressBar())
+			{
+				SetWindowPos(addressBar->GetView()->GetContainerHWND(), nullptr, left,
+					addressBarTop, width, showAddressBar ? addressBarHeight : 0,
+					(showAddressBar ? SWP_SHOWWINDOW : SWP_HIDEWINDOW) | SWP_NOZORDER);
+			}
 
 			for (auto &tab : pane->GetTabContainer()->GetAllTabs() | boost::adaptors::map_values)
 			{
@@ -1140,12 +1225,24 @@ void Explorerplusplus::UpdateLayout()
 
 	SetWindowPos(GetActivePane()->GetTabContainer()->GetHWND(), nullptr, 0, 0, tabBackingWidth - 25,
 		tabWindowHeight, SWP_SHOWWINDOW | SWP_NOZORDER);
+	if (m_secondaryBrowserPane && m_secondaryBrowserPane->GetAddressBar())
+	{
+		ShowWindow(m_secondaryBrowserPane->GetAddressBar()->GetView()->GetContainerHWND(),
+			SW_HIDE);
+	}
+	if (auto *addressBar = GetActivePane()->GetAddressBar())
+	{
+		SetWindowPos(addressBar->GetView()->GetContainerHWND(), nullptr, indentLeft,
+			addressBarTop, mainWindowWidth - indentLeft - indentRight,
+			showAddressBar ? addressBarHeight : 0,
+			(showAddressBar ? SWP_SHOWWINDOW : SWP_HIDEWINDOW) | SWP_NOZORDER);
+	}
 
 	int holderTop;
 
-	if (m_config->extendTabControl.get() && !m_config->showTabBarAtBottom.get())
+	if (m_config->extendTabControl.get() && !tabsAtBottom)
 	{
-		holderTop = indentTop;
+		holderTop = indentRebar + topTabHeight;
 	}
 	else
 	{
@@ -1156,13 +1253,17 @@ void Explorerplusplus::UpdateLayout()
 
 	int holderHeight;
 
-	if (m_config->extendTabControl.get() && m_config->showTabBarAtBottom.get() && m_bShowTabBar)
+	if (tabsAtBottom && m_config->extendTabControl.get())
 	{
 		holderHeight = mainWindowHeight - indentBottom - holderTop - tabWindowHeight;
 	}
 	else
 	{
 		holderHeight = mainWindowHeight - indentBottom - holderTop;
+	}
+	if (addressBarAtBottom)
+	{
+		holderHeight -= bottomAddressBarHeight;
 	}
 
 	SetWindowPos(m_treeViewHolder->GetHWND(), nullptr, 0, holderTop, m_treeViewWidth, holderHeight,
@@ -1194,9 +1295,9 @@ void Explorerplusplus::UpdateLayout()
 		int width = mainWindowWidth - indentLeft - indentRight;
 		int height = mainWindowHeight - indentBottom - indentTop;
 
-		if (m_config->showTabBarAtBottom.get() && m_bShowTabBar)
+		if (tabsAtBottom)
 		{
-			height -= tabWindowHeight;
+			height -= bottomTabHeight + bottomAddressBarHeight;
 		}
 
 		SetWindowPos(tab->GetShellBrowserImpl()->GetListView(), NULL, indentLeft, indentTop, width,

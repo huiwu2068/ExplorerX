@@ -3,15 +3,15 @@
 // See LICENSE in the top level directory
 
 #include "pch.h"
-#include "../Explorer++/ShellBrowser/ShellNavigationController.h"
+#include "../ExplorerX/ShellBrowser/ShellNavigationController.h"
 #include "BrowserWindowMock.h"
 #include "NavigationRequestTestHelper.h"
 #include "PidlTestHelper.h"
 #include "ShellBrowser/NavigationEvents.h"
 #include "ShellBrowser/PreservedShellBrowser.h"
 #include "ShellBrowserFake.h"
-#include "../Explorer++/ShellBrowser/HistoryEntry.h"
-#include "../Explorer++/ShellBrowser/PreservedHistoryEntry.h"
+#include "../ExplorerX/ShellBrowser/HistoryEntry.h"
+#include "../ExplorerX/ShellBrowser/PreservedHistoryEntry.h"
 #include "../Helper/ShellHelper.h"
 #include <gtest/gtest.h>
 #include <ShlObj.h>

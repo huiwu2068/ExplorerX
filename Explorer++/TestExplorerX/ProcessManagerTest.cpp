@@ -80,7 +80,7 @@ TEST_F(ProcessManagerTest, ExistingProcessOpenDefaultDirectory)
 
 	// There are no directories specified in the command line settings for the second process, so
 	// the first process should attempt to open a tab in the default directory.
-	EXPECT_CALL(browser, OpenDefaultItem(OpenFolderDisposition::NewTabDefault));
+	EXPECT_CALL(browser, OpenDefaultItem(OpenFolderDisposition::ForegroundTab));
 	EXPECT_CALL(browser, Activate());
 
 	ProcessData processData2;
@@ -104,14 +104,16 @@ TEST_F(ProcessManagerTest, ExistingProcessOpenDirectories)
 
 	for (const auto &directory : directories)
 	{
-		EXPECT_CALL(browser, OpenItem(directory, OpenFolderDisposition::NewTabDefault));
+		EXPECT_CALL(browser, OpenItem(directory, OpenFolderDisposition::ForegroundTab));
 	}
 
 	EXPECT_CALL(browser, Activate()).Times(static_cast<int>(directories.size()));
 
 	ProcessData processData2;
 	processData2.settings.directories = directories;
-	processData2.config.allowMultipleInstances = false;
+	// External path opens should reuse the existing process even when normal launches may create
+	// multiple instances.
+	processData2.config.allowMultipleInstances = true;
 	res = processData2.Initialize(windowName);
 	EXPECT_FALSE(res);
 }

@@ -209,7 +209,7 @@ private:
 	/* Main window message handlers. */
 	LRESULT CommandHandler(HWND hwnd, HWND control, UINT id, UINT notificationCode);
 	LRESULT HandleMenuOrToolbarButtonOrAccelerator(HWND hwnd, UINT id, UINT notificationCode);
-	LRESULT HandleControlNotification(HWND hwnd, UINT notificationCode);
+	LRESULT HandleControlNotification(HWND control, UINT notificationCode);
 	LRESULT CALLBACK NotifyHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	void Initialize(const WindowStorageData *storageData);
 	bool OnActivate(int activationState, bool minimized);
@@ -305,11 +305,12 @@ private:
 		const std::vector<RebarBandStorageInfo> &rebarStorageInfo);
 	LRESULT RebarSubclass(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	void CreateFolderControls();
-	void CreateAddressBar();
+	AddressBar *CreateAddressBar(BrowserPane *pane);
 	void CreateMainToolbar(
 		const std::optional<MainToolbarStorage::MainToolbarButtons> &initialButtons);
 	void CreateEverythingSearchBar();
 	void SubmitEverythingSearch();
+	void RefreshEverythingSearchTab(int tabId);
 	void ShowEverythingSearchMenu();
 	void CreateBookmarksToolbar();
 	void CreateDrivesToolbar();
@@ -420,7 +421,6 @@ private:
 #endif
 
 	BrowserView *m_view = nullptr;
-	AddressBar *m_addressBar = nullptr;
 	TabBacking *m_tabBacking = nullptr;
 	TabBacking *m_secondaryTabBacking = nullptr;
 	HWND m_dualPaneSplitter = nullptr;

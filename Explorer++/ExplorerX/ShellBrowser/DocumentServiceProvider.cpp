@@ -54,5 +54,13 @@ IFACEMETHODIMP DocumentServiceProvider::Invoke(DISPID dispIdMember, REFIID riid,
 // IServiceProvider
 IFACEMETHODIMP DocumentServiceProvider::QueryService(REFGUID guidService, REFIID riid, void **ppv)
 {
+	// Some shell callers ask for IShellView through the folder-view service. Keep that route
+	// working while also exposing the actual IFolderView implementation to other callers.
+	if ((IsEqualGUID(guidService, IID_IFolderView) || IsEqualGUID(guidService, SID_SFolderView))
+		&& IsEqualIID(riid, IID_IShellView))
+	{
+		return ServiceProviderBase::QueryService(IID_IShellView, riid, ppv);
+	}
+
 	return ServiceProviderBase::QueryService(guidService, riid, ppv);
 }

@@ -58,7 +58,11 @@ bool ProcessManager::InitializeCurrentProcess(const CommandLine::Settings *comma
 			return false;
 		}
 
-		if (!config->allowMultipleInstances)
+		// Requests that name a path (such as opening a folder from another application) should
+		// reuse the existing window even when multiple instances are enabled for normal launches.
+		// Otherwise each external open can create another top-level window and taskbar preview.
+		if (!config->allowMultipleInstances || !commandLineSettings->directories.empty()
+			|| !commandLineSettings->filesToSelect.empty())
 		{
 			AttemptToNotifyExistingProcess(existingWindow, commandLineSettings->directories,
 				commandLineSettings->filesToSelect);
@@ -105,12 +109,15 @@ void ProcessManager::OnCopyData(const COPYDATASTRUCT *cds)
 		}
 		else
 		{
-			browser->OpenItem(path, OpenFolderDisposition::NewTabDefault);
+			// An external request (for example, from a file manager integration) must become
+			// visible immediately. NewTabDefault can create a background tab, while Activate()
+			// below only activates the top-level window and does not select that tab.
+			browser->OpenItem(path, OpenFolderDisposition::ForegroundTab);
 		}
 	}
 	else
 	{
-		browser->OpenDefaultItem(OpenFolderDisposition::NewTabDefault);
+		browser->OpenDefaultItem(OpenFolderDisposition::ForegroundTab);
 	}
 
 	browser->Activate();
@@ -144,6 +151,10 @@ void ProcessManager::AttemptToNotifyExistingProcess(HWND existingWindow,
 		for (const auto &directory : directories)
 		{
 			COPYDATASTRUCT cds = {};
+			if (PathFileExists(directory.c_str()) && !PathIsDirectory(directory.c_str()))
+			{
+				cds.dwData = COPYDATA_OPEN_FILE_LOCATION;
+			}
 			cds.cbData = static_cast<DWORD>(directory.size() * sizeof(wchar_t));
 			cds.lpData = const_cast<wchar_t *>(directory.c_str());
 			SendMessage(existingWindow, WM_COPYDATA, NULL, reinterpret_cast<LPARAM>(&cds));

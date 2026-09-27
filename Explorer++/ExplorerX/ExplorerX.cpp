@@ -205,6 +205,7 @@ void Explorerplusplus::Initialize(const WindowStorageData *storageData)
 		GetActivePane()->GetTabContainer(), m_appServices);
 
 	CreateInitialTabs(storageData);
+	CreateAddressBar(m_browserPane.get());
 
 	if (m_config->dualPane && m_featureList->IsEnabled(Feature::DualPane))
 	{

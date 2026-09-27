@@ -42,7 +42,16 @@ void ShellItemContextMenu::ShowMenu(HWND hwnd, const POINT *pt, IUnknown *site, 
 wil::com_ptr_nothrow<IContextMenu> ShellItemContextMenu::MaybeGetShellContextMenu(HWND hwnd) const
 {
 	wil::com_ptr_nothrow<IShellFolder> shellFolder;
-	HRESULT hr = SHBindToObject(nullptr, m_directory.Raw(), nullptr, IID_PPV_ARGS(&shellFolder));
+	HRESULT hr = S_OK;
+
+	if (!m_directory.Raw() || ILIsEmpty(m_directory.Raw()))
+	{
+		hr = SHGetDesktopFolder(&shellFolder);
+	}
+	else
+	{
+		hr = SHBindToObject(nullptr, m_directory.Raw(), nullptr, IID_PPV_ARGS(&shellFolder));
+	}
 
 	if (FAILED(hr))
 	{

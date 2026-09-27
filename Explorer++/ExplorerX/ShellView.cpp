@@ -7,6 +7,7 @@
 #include "ShellBrowser/ShellBrowserImpl.h"
 #include "Tab.h"
 #include "TabContainer.h"
+#include "BrowserWindow.h"
 
 ShellView::ShellView(WeakPtr<ShellBrowserImpl> shellBrowserWeak, bool switchToTabOnSelect) :
 	m_shellBrowserWeak(shellBrowserWeak),
@@ -94,9 +95,9 @@ IFACEMETHODIMP ShellView::SelectItem(PCUITEMID_CHILD pidlItem, SVSIF flags)
 		m_shellBrowserWeak->QueueRename(pidlComplete.get());
 		return S_OK;
 	}
-	else if (WI_IsFlagSet(flags, SVSI_SELECT))
+	else
 	{
-		if (m_switchToTabOnSelect)
+		if (m_switchToTabOnSelect && m_shellBrowserWeak->GetTab())
 		{
 			m_shellBrowserWeak->GetTab()->GetTabContainer()->SelectTab(
 				*m_shellBrowserWeak->GetTab());
@@ -105,11 +106,14 @@ IFACEMETHODIMP ShellView::SelectItem(PCUITEMID_CHILD pidlItem, SVSIF flags)
 		auto pidlComplete =
 			unique_pidl_absolute(ILCombine(m_shellBrowserWeak->GetDirectory().Raw(), pidlItem));
 		m_shellBrowserWeak->SelectItems({ pidlComplete.get() });
+		SetFocus(m_shellBrowserWeak->GetListView());
+		if (m_shellBrowserWeak->GetTab() && m_shellBrowserWeak->GetTab()->GetBrowser())
+		{
+			m_shellBrowserWeak->GetTab()->GetBrowser()->Activate();
+		}
 
 		return S_OK;
 	}
-
-	return E_NOTIMPL;
 }
 
 IFACEMETHODIMP ShellView::GetItemObject(UINT item, REFIID riid, void **ppv)

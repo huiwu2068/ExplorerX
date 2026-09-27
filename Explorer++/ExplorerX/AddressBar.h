@@ -14,6 +14,7 @@
 #include <boost/signals2.hpp>
 #include <concurrencpp/concurrencpp.h>
 #include <memory>
+#include <functional>
 #include <vector>
 
 class AddressBarView;
@@ -26,11 +27,14 @@ class ShellBrowser;
 class ShellBrowserEvents;
 class Tab;
 class TabEvents;
+class TabContainer;
 
 class AddressBar : private AddressBarViewDelegate, public BrowserCommandTarget
 {
 public:
-	static AddressBar *Create(AddressBarView *view, BrowserWindow *browser, TabEvents *tabEvents,
+	static AddressBar *Create(AddressBarView *view, BrowserWindow *browser,
+		TabContainer *tabContainer, std::function<void()> activatePane,
+		std::function<void()> refreshTab, TabEvents *tabEvents,
 		ShellBrowserEvents *shellBrowserEvents, NavigationEvents *navigationEvents,
 		const Runtime *runtime, AsyncIconFetcher *iconFetcher);
 
@@ -50,7 +54,8 @@ private:
 		AlwaysFetch
 	};
 
-	AddressBar(AddressBarView *view, BrowserWindow *browser, TabEvents *tabEvents,
+	AddressBar(AddressBarView *view, BrowserWindow *browser, TabContainer *tabContainer,
+		std::function<void()> activatePane, std::function<void()> refreshTab, TabEvents *tabEvents,
 		ShellBrowserEvents *shellBrowserEvents, NavigationEvents *navigationEvents,
 		const Runtime *runtime, AsyncIconFetcher *iconFetcher);
 	~AddressBar() = default;
@@ -62,6 +67,9 @@ private:
 	bool OnKeyPressed(UINT key) override;
 	void OnBeginDrag() override;
 	void OnFocused() override;
+	void OnBreadcrumbSelected(size_t index) override;
+	void OnNavigationButtonClicked(AddressBarNavigationButton button) override;
+	void OnCurrentPathClicked() override;
 
 	void OnEnterPressed();
 	void OnEscapePressed();
@@ -70,16 +78,23 @@ private:
 	void OnDirectoryPropertiesChanged(const ShellBrowser *shellBrowser);
 	void UpdateTextAndIcon(const ShellBrowser *shellBrowser,
 		IconUpdateType iconUpdateType = IconUpdateType::FetchIfNotCached);
+	void UpdateBreadcrumbs(PCIDLIST_ABSOLUTE pidl);
 	static concurrencpp::null_result RetrieveUpdatedIcon(WeakPtr<AddressBar> weakSelf,
 		PidlAbsolute pidl);
 	void OnWindowDestroyed();
+	const ShellBrowser *GetSelectedShellBrowser() const;
+	void ActivatePane() const;
 
 	AddressBarView *const m_view;
 	BrowserWindow *const m_browser;
+	TabContainer *const m_tabContainer;
+	const std::function<void()> m_activatePane;
+	const std::function<void()> m_refreshTab;
 	const Runtime *const m_runtime;
 	AsyncIconFetcher *const m_iconFetcher;
 	ScopedBrowserCommandTarget m_commandTarget;
 	std::vector<boost::signals2::scoped_connection> m_connections;
+	std::vector<PidlAbsolute> m_breadcrumbPidls;
 	std::unique_ptr<ScopedStopSource> m_scopedStopSource;
 
 	WeakPtrFactory<AddressBar> m_weakPtrFactory;

@@ -685,6 +685,7 @@ private:
 	// Shell window integration
 	winrt::com_ptr<IShellWindows> m_shellWindows;
 	bool m_shellWindowRegistered;
+	unique_shell_window_cookie m_pendingShellWindowCookie;
 	unique_shell_window_cookie m_shellWindowCookie;
 
 	/* Thumbnails. */

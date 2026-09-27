@@ -20,3 +20,13 @@ TabContainer *BrowserPane::GetTabContainer() const
 {
 	return m_tabContainer;
 }
+
+AddressBar *BrowserPane::GetAddressBar() const
+{
+	return m_addressBar;
+}
+
+void BrowserPane::SetAddressBar(AddressBar *addressBar)
+{
+	m_addressBar = addressBar;
+}

@@ -21,7 +21,8 @@ protected:
 	AddressBarTest() :
 		m_browser(AddBrowser()),
 		m_addressBarView(AddressBarView::Create(m_browser->GetHWND(), &m_config)),
-		m_addressBar(AddressBar::Create(m_addressBarView, m_browser, &m_tabEvents,
+		m_addressBar(AddressBar::Create(m_addressBarView, m_browser,
+			m_browser->GetActiveTabContainer(), [] {}, [] {}, &m_tabEvents,
 			&m_shellBrowserEvents, &m_navigationEvents, &m_runtime, &m_iconFetcher))
 	{
 	}
@@ -73,6 +74,24 @@ TEST_F(AddressBarTest, DisplayUpdateAfterTabSwitch)
 	EXPECT_THAT(m_addressBarView->GetText(), StrCaseEq(path1));
 	m_browser->GetActiveTabContainer()->SelectTabAtIndex(1);
 	EXPECT_THAT(m_addressBarView->GetText(), StrCaseEq(path2));
+}
+
+TEST_F(AddressBarTest, SelectingBreadcrumbNavigatesToAncestor)
+{
+	std::wstring path = L"c:\\path\\to\\folder";
+	auto *tab = m_browser->AddTab(path);
+	ASSERT_GE(m_addressBarView->GetBreadcrumbCountForTesting(), 2u);
+
+	HWND originalToolbar = m_addressBarView->GetBreadcrumbToolbarHWND();
+	m_addressBarView->SelectBreadcrumbForTesting(
+		m_addressBarView->GetBreadcrumbCountForTesting() - 2);
+	m_addressBarView->ProcessPendingBreadcrumbUpdateForTesting();
+	EXPECT_NE(m_addressBarView->GetBreadcrumbToolbarHWND(), originalToolbar);
+
+	EXPECT_EQ(tab->GetShellBrowser()->GetNavigationController()->GetNumHistoryEntries(), 2);
+	auto *currentEntry = tab->GetShellBrowser()->GetNavigationController()->GetCurrentEntry();
+	ASSERT_NE(currentEntry, nullptr);
+	EXPECT_EQ(currentEntry->GetPidl(), CreateSimplePidlForTest(L"c:\\path\\to"));
 }
 
 TEST_F(AddressBarTest, OpenItemOnEnter)

@@ -62,14 +62,6 @@ std::vector<RebarView::Band> Explorerplusplus::InitializeMainRebarBands(
 	band.length = DpiCompatibility::GetInstance().ScaleValue(m_hwnd, 340);
 	mainRebarBands.push_back(band);
 
-	CreateAddressBar();
-	band = InitializeNonToolbarBand(REBAR_BAND_ID_ADDRESS_BAR, m_addressBar->GetView()->GetHWND(),
-		m_config->showAddressBar.get());
-	mainRebarBands.push_back(band);
-
-	m_rebarConnections.push_back(m_config->showAddressBar.addObserver(std::bind_front(
-		&RebarView::ShowBand, m_mainRebarView, m_addressBar->GetView()->GetHWND())));
-
 	CreateBookmarksToolbar();
 	band = InitializeToolbarBand(REBAR_BAND_ID_BOOKMARKS_TOOLBAR,
 		m_bookmarksToolbar->GetView()->GetHWND(), m_config->showBookmarksToolbar.get());
@@ -217,7 +209,19 @@ bool Explorerplusplus::OnToolbarRightClick(const NMMOUSE *mouseInfo)
 
 	ToolbarContextMenu::Source source = ToolbarContextMenu::Source::MainToolbar;
 
-	if (mouseInfo->hdr.hwndFrom == m_addressBar->GetView()->GetHWND())
+	auto isAddressBarWindow = [this, mouseInfo](BrowserPane *pane)
+	{
+		if (!pane || !pane->GetAddressBar())
+		{
+			return false;
+		}
+		auto *view = pane->GetAddressBar()->GetView();
+		return mouseInfo->hdr.hwndFrom == view->GetHWND()
+			|| mouseInfo->hdr.hwndFrom == view->GetContainerHWND()
+			|| mouseInfo->hdr.hwndFrom == view->GetBreadcrumbToolbarHWND();
+	};
+	if (isAddressBarWindow(m_browserPane.get())
+		|| isAddressBarWindow(m_secondaryBrowserPane.get()))
 	{
 		source = ToolbarContextMenu::Source::AddressBar;
 	}
@@ -252,21 +256,47 @@ bool Explorerplusplus::OnToolbarRightClick(const NMMOUSE *mouseInfo)
 	return true;
 }
 
-void Explorerplusplus::CreateAddressBar()
+AddressBar *Explorerplusplus::CreateAddressBar(BrowserPane *pane)
 {
-	auto *addressBarView = AddressBarView::Create(m_mainRebarView->GetHWND(), m_config);
+	if (!pane || pane->GetAddressBar())
+	{
+		return pane ? pane->GetAddressBar() : nullptr;
+	}
+	auto *addressBarView = AddressBarView::Create(m_hwnd, m_config);
 	addressBarView->sizeUpdatedSignal.AddObserver(
 		std::bind_front(&Explorerplusplus::OnAddressBarSizeUpdated, this));
+	if (pane == m_browserPane.get())
+	{
+		m_connections.push_back(m_config->showAddressBar.addObserver(
+			[this](BOOL) { UpdateLayout(); }));
+	}
 
-	m_addressBar = AddressBar::Create(addressBarView, this, m_tabEvents, m_shellBrowserEvents,
-		m_navigationEvents, m_appServices->GetRuntime(), m_appServices->GetAsyncIconFetcher());
+	auto *addressBar = AddressBar::Create(addressBarView, this, pane->GetTabContainer(),
+		[this, pane]
+		{
+			SetActivePane(pane);
+			UpdateWindowStates(pane->GetTabContainer()->GetSelectedTab());
+			UpdateLayout();
+		},
+		[this, pane]
+		{
+			Tab &tab = pane->GetTabContainer()->GetSelectedTab();
+			if (m_everythingSearchTabs.contains(tab.GetId()))
+			{
+				RefreshEverythingSearchTab(tab.GetId());
+				return;
+			}
+			tab.GetShellBrowserImpl()->GetNavigationController()->Refresh();
+		},
+		m_tabEvents, m_shellBrowserEvents, m_navigationEvents, m_appServices->GetRuntime(),
+		m_appServices->GetAsyncIconFetcher());
+	pane->SetAddressBar(addressBar);
+	return addressBar;
 }
 
 void Explorerplusplus::OnAddressBarSizeUpdated()
 {
-	RECT rect;
-	GetWindowRect(m_addressBar->GetView()->GetHWND(), &rect);
-	m_mainRebarView->UpdateBandSize(m_addressBar->GetView()->GetHWND(), 0, GetRectHeight(&rect));
+	UpdateLayout();
 }
 
 void Explorerplusplus::CreateMainToolbar(

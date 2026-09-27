@@ -6,7 +6,7 @@
     <!-- Storing the version information here allows it to be accessed both by the source code as well as by the build itself. -->
     <ExplorerPlusPlusMajorVersion>1</ExplorerPlusPlusMajorVersion>
     <ExplorerPlusPlusMinorVersion>5</ExplorerPlusPlusMinorVersion>
-    <ExplorerPlusPlusMicroVersion>0</ExplorerPlusPlusMicroVersion>
+    <ExplorerPlusPlusMicroVersion>1</ExplorerPlusPlusMicroVersion>
     <ExplorerPlusPlusBuildVersion>0</ExplorerPlusPlusBuildVersion>
 
     <ExplorerPlusPlusEffectiveBuildVersion>$(ExplorerPlusPlusBuildVersion)</ExplorerPlusPlusEffectiveBuildVersion>

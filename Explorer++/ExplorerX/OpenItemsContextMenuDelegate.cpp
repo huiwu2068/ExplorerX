@@ -26,6 +26,18 @@ OpenItemsContextMenuDelegate::OpenItemsContextMenuDelegate(BrowserWindow *browse
 {
 }
 
+namespace
+{
+PidlAbsolute GetCompletePidl(PCIDLIST_ABSOLUTE directory, const PidlChild &child)
+{
+	if (!directory || ILIsEmpty(directory))
+	{
+		return PidlAbsolute(ILCloneFull(reinterpret_cast<PCIDLIST_ABSOLUTE>(child.Raw())), Pidl::takeOwnership);
+	}
+	return directory + child;
+}
+}
+
 void OpenItemsContextMenuDelegate::UpdateMenuEntries(PCIDLIST_ABSOLUTE directory,
 	const std::vector<PidlChild> &items, ShellContextMenuBuilder *builder)
 {
@@ -34,7 +46,7 @@ void OpenItemsContextMenuDelegate::UpdateMenuEntries(PCIDLIST_ABSOLUTE directory
 		return;
 	}
 
-	auto pidlComplete = directory + items[0];
+	auto pidlComplete = GetCompletePidl(directory, items[0]);
 
 	if (!DoesItemHaveAttributes(pidlComplete.Raw(), SFGAO_FOLDER))
 	{
@@ -54,7 +66,7 @@ bool OpenItemsContextMenuDelegate::MaybeHandleShellMenuItem(PCIDLIST_ABSOLUTE di
 
 		for (const auto &item : items)
 		{
-			auto pidlComplete = directory + item;
+			auto pidlComplete = GetCompletePidl(directory, item);
 			browser->OpenItem(pidlComplete.Raw());
 		}
 
@@ -74,7 +86,7 @@ void OpenItemsContextMenuDelegate::HandleCustomMenuItem(PCIDLIST_ABSOLUTE direct
 		// This menu item should only be added when a single folder is selected.
 		CHECK_EQ(items.size(), 1u);
 
-		auto pidlComplete = directory + items[0];
+		auto pidlComplete = GetCompletePidl(directory, items[0]);
 
 		auto *browser = GetTargetBrowser();
 		browser->OpenItem(pidlComplete.Raw(), OpenFolderDisposition::NewTabDefault);

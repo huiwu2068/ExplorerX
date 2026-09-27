@@ -451,7 +451,7 @@
     <ClCompile Include="XmlStorageTestHelper.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Explorer++\Explorer++.vcxproj">
+    <ProjectReference Include="..\ExplorerX\ExplorerX.vcxproj">
       <Project>{7544a240-2ebf-4dc1-b55b-c8ae32672ed0}</Project>
     </ProjectReference>
   </ItemGroup>
@@ -551,7 +551,7 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <ConformanceMode>true</ConformanceMode>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -562,14 +562,14 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>Helper.lib;Explorer++.exe.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\Explorer++\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Helper.lib;ExplorerX.exe.lib;comctl32.lib;shell32.lib;gdiplus.lib;msimg32.lib;shlwapi.lib;psapi.lib;uxtheme.lib;vfw32.lib;rpcrt4.lib;iphlpapi.lib;version.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\ExplorerX\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Resources" "$(TargetDir)Resources\" /s /y</Command>
     </PostBuildEvent>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Asan|Win32'">
@@ -582,7 +582,7 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <ConformanceMode>true</ConformanceMode>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -593,14 +593,14 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>Helper.lib;Explorer++.exe.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\Explorer++\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Helper.lib;ExplorerX.exe.lib;comctl32.lib;shell32.lib;gdiplus.lib;msimg32.lib;shlwapi.lib;psapi.lib;uxtheme.lib;vfw32.lib;rpcrt4.lib;iphlpapi.lib;version.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\ExplorerX\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Resources" "$(TargetDir)Resources\" /s /y</Command>
     </PostBuildEvent>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Clang|Win32'">
@@ -613,7 +613,7 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <ConformanceMode>true</ConformanceMode>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -621,15 +621,15 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>Helper.lib;Explorer++.exe.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\Explorer++\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Helper.lib;ExplorerX.exe.lib;comctl32.lib;shell32.lib;gdiplus.lib;msimg32.lib;shlwapi.lib;psapi.lib;uxtheme.lib;vfw32.lib;rpcrt4.lib;iphlpapi.lib;version.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\ExplorerX\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Resources" "$(TargetDir)Resources\" /s /y</Command>
     </PostBuildEvent>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -642,7 +642,7 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <ConformanceMode>true</ConformanceMode>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -653,14 +653,14 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\Explorer++\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Helper.lib;Explorer++.exe.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\ExplorerX\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Helper.lib;ExplorerX.exe.lib;comctl32.lib;shell32.lib;gdiplus.lib;msimg32.lib;shlwapi.lib;psapi.lib;uxtheme.lib;vfw32.lib;rpcrt4.lib;iphlpapi.lib;version.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Resources" "$(TargetDir)Resources\" /s /y</Command>
     </PostBuildEvent>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Asan|x64'">
@@ -673,7 +673,7 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <ConformanceMode>true</ConformanceMode>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -684,14 +684,14 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\Explorer++\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Helper.lib;Explorer++.exe.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\ExplorerX\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Helper.lib;ExplorerX.exe.lib;comctl32.lib;shell32.lib;gdiplus.lib;msimg32.lib;shlwapi.lib;psapi.lib;uxtheme.lib;vfw32.lib;rpcrt4.lib;iphlpapi.lib;version.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Resources" "$(TargetDir)Resources\" /s /y</Command>
     </PostBuildEvent>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
@@ -704,7 +704,7 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <ConformanceMode>true</ConformanceMode>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -715,14 +715,14 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\Explorer++\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Helper.lib;Explorer++.exe.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\ExplorerX\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Helper.lib;ExplorerX.exe.lib;comctl32.lib;shell32.lib;gdiplus.lib;msimg32.lib;shlwapi.lib;psapi.lib;uxtheme.lib;vfw32.lib;rpcrt4.lib;iphlpapi.lib;version.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Resources" "$(TargetDir)Resources\" /s /y</Command>
     </PostBuildEvent>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Asan|ARM64'">
@@ -735,7 +735,7 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <ConformanceMode>true</ConformanceMode>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -746,14 +746,14 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\Explorer++\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Helper.lib;Explorer++.exe.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\ExplorerX\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Helper.lib;ExplorerX.exe.lib;comctl32.lib;shell32.lib;gdiplus.lib;msimg32.lib;shlwapi.lib;psapi.lib;uxtheme.lib;vfw32.lib;rpcrt4.lib;iphlpapi.lib;version.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Resources" "$(TargetDir)Resources\" /s /y</Command>
     </PostBuildEvent>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Clang|x64'">
@@ -766,7 +766,7 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <ConformanceMode>true</ConformanceMode>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -774,15 +774,15 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\Explorer++\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Helper.lib;Explorer++.exe.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\ExplorerX\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Helper.lib;ExplorerX.exe.lib;comctl32.lib;shell32.lib;gdiplus.lib;msimg32.lib;shlwapi.lib;psapi.lib;uxtheme.lib;vfw32.lib;rpcrt4.lib;iphlpapi.lib;version.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Resources" "$(TargetDir)Resources\" /s /y</Command>
     </PostBuildEvent>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Clang|ARM64'">
@@ -795,7 +795,7 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <ConformanceMode>true</ConformanceMode>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -803,15 +803,15 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\Explorer++\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Helper.lib;Explorer++.exe.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\ExplorerX\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Helper.lib;ExplorerX.exe.lib;comctl32.lib;shell32.lib;gdiplus.lib;msimg32.lib;shlwapi.lib;psapi.lib;uxtheme.lib;vfw32.lib;rpcrt4.lib;iphlpapi.lib;version.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <TargetMachine>MachineARM64</TargetMachine>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Resources" "$(TargetDir)Resources\" /s /y</Command>
     </PostBuildEvent>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -822,7 +822,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <ConformanceMode>true</ConformanceMode>
@@ -836,14 +836,14 @@
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\Explorer++\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Helper.lib;Explorer++.exe.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\ExplorerX\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Helper.lib;ExplorerX.exe.lib;comctl32.lib;shell32.lib;gdiplus.lib;msimg32.lib;shlwapi.lib;psapi.lib;uxtheme.lib;vfw32.lib;rpcrt4.lib;iphlpapi.lib;version.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Resources" "$(TargetDir)Resources\" /s /y</Command>
     </PostBuildEvent>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-Clang|Win32'">
@@ -854,7 +854,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <ConformanceMode>true</ConformanceMode>
@@ -868,14 +868,14 @@
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\Explorer++\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Helper.lib;Explorer++.exe.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\ExplorerX\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Helper.lib;ExplorerX.exe.lib;comctl32.lib;shell32.lib;gdiplus.lib;msimg32.lib;shlwapi.lib;psapi.lib;uxtheme.lib;vfw32.lib;rpcrt4.lib;iphlpapi.lib;version.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Resources" "$(TargetDir)Resources\" /s /y</Command>
     </PostBuildEvent>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -886,7 +886,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <ConformanceMode>true</ConformanceMode>
@@ -900,14 +900,14 @@
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\Explorer++\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Helper.lib;Explorer++.exe.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\ExplorerX\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Helper.lib;ExplorerX.exe.lib;comctl32.lib;shell32.lib;gdiplus.lib;msimg32.lib;shlwapi.lib;psapi.lib;uxtheme.lib;vfw32.lib;rpcrt4.lib;iphlpapi.lib;version.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Resources" "$(TargetDir)Resources\" /s /y</Command>
     </PostBuildEvent>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-Clang|x64'">
@@ -918,7 +918,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <ConformanceMode>true</ConformanceMode>
@@ -932,14 +932,14 @@
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\Explorer++\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Helper.lib;Explorer++.exe.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\ExplorerX\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Helper.lib;ExplorerX.exe.lib;comctl32.lib;shell32.lib;gdiplus.lib;msimg32.lib;shlwapi.lib;psapi.lib;uxtheme.lib;vfw32.lib;rpcrt4.lib;iphlpapi.lib;version.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Resources" "$(TargetDir)Resources\" /s /y</Command>
     </PostBuildEvent>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -950,7 +950,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <ConformanceMode>true</ConformanceMode>
@@ -964,14 +964,14 @@
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\Explorer++\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Helper.lib;Explorer++.exe.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\ExplorerX\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Helper.lib;ExplorerX.exe.lib;comctl32.lib;shell32.lib;gdiplus.lib;msimg32.lib;shlwapi.lib;psapi.lib;uxtheme.lib;vfw32.lib;rpcrt4.lib;iphlpapi.lib;version.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Resources" "$(TargetDir)Resources\" /s /y</Command>
     </PostBuildEvent>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-Clang|ARM64'">
@@ -982,7 +982,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <ConformanceMode>true</ConformanceMode>
@@ -996,14 +996,14 @@
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\Explorer++\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Helper.lib;Explorer++.exe.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\$(Platform)\$(Configuration);$(ProjectDir)..\ExplorerX\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Helper.lib;ExplorerX.exe.lib;comctl32.lib;shell32.lib;gdiplus.lib;msimg32.lib;shlwapi.lib;psapi.lib;uxtheme.lib;vfw32.lib;rpcrt4.lib;iphlpapi.lib;version.lib;winmm.lib;propsys.lib;windowscodecs.lib;dbghelp.lib;msxml2.lib;mpr.lib;urlmon.lib;wininet.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Resources" "$(TargetDir)Resources\" /s /y</Command>
     </PostBuildEvent>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Explorer++\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ExplorerX\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

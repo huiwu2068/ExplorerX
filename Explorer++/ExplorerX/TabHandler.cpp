@@ -252,7 +252,14 @@ void Explorerplusplus::CreateCommandLineTabs()
 			continue;
 		}
 
-		GetActivePane()->GetTabContainer()->CreateNewTab(*absolutePath, { .selected = true });
+		if (PathFileExists(absolutePath->c_str()) && !PathIsDirectory(absolutePath->c_str()))
+		{
+			OpenFileLocation(*absolutePath);
+		}
+		else
+		{
+			GetActivePane()->GetTabContainer()->CreateNewTab(*absolutePath, { .selected = true });
+		}
 	}
 }
 
@@ -283,60 +290,45 @@ void Explorerplusplus::OpenFileLocation(const std::wstring &itemPath)
 		return;
 	}
 
-	auto *activeShellBrowser = GetActiveShellBrowserImpl();
+	PidlAbsolute pidlToSelect(fullPidl.get());
+	auto *tabContainer = GetActivePane()->GetTabContainer();
 
-	// If the current tab is already showing the target parent directory, just select the
-	// item without navigating. This avoids opening a new tab (and triggering a full Shell
-	// enumeration) for every "Show in folder" request from external apps like Chrome.
-	if (activeShellBrowser
-		&& ArePidlsEquivalent(activeShellBrowser->GetDirectory().Raw(), parentPidl.get()))
+	if (tabContainer->GetNumTabs() == 0)
 	{
-		PidlAbsolute pidlToSelect(fullPidl.get());
-		activeShellBrowser->SelectItems({ pidlToSelect });
+		auto navigateParams = NavigateParams::Normal(parentPidl.get());
+		navigateParams.filesToSelect = { pidlToSelect };
+		tabContainer->CreateNewTab(navigateParams, { .selected = true });
+		Activate();
 		return;
 	}
 
-	// Otherwise navigate the current tab to the parent directory. Once navigation commits,
-	// select the target file. We capture the pidl by value so it stays valid after this
-	// function returns (navigation is asynchronous).
-	PidlAbsolute pidlToSelect(fullPidl.get());
-	PidlAbsolute pidlParent(parentPidl.get());
+	for (int i = 0; i < tabContainer->GetNumTabs(); ++i)
+	{
+		auto &tab = tabContainer->GetTabByIndex(i);
+		auto *shellBrowser = tab.GetShellBrowserImpl();
+		if (shellBrowser && ArePidlsEquivalent(shellBrowser->GetDirectory().Raw(), parentPidl.get()))
+		{
+			tabContainer->SelectTab(tab);
+			shellBrowser->SelectItems({ pidlToSelect });
+			SetFocus(shellBrowser->GetListView());
+			Activate();
+			return;
+		}
+	}
 
 	auto navigateParams = NavigateParams::Normal(parentPidl.get());
+	navigateParams.filesToSelect = { pidlToSelect };
 
-	// Connect a one-shot observer that fires when the navigation to the parent directory
-	// commits, then selects the target item. The scoped_connection is kept alive inside the
-	// lambda via a shared_ptr so it can be destroyed (disconnected) from within the callback.
-	auto connectionHolder = std::make_shared<boost::signals2::scoped_connection>();
-	auto *navEvents = m_appServices->GetNavigationEvents();
-	auto *targetShellBrowser = activeShellBrowser;
-
-	*connectionHolder = navEvents->AddCommittedObserver(
-		[this, pidlToSelect, pidlParent, connectionHolder, targetShellBrowser](
-			const NavigationRequest *request)
-		{
-			// Only handle the navigation of the specific shell browser we targeted.
-			if (request->GetShellBrowser() != targetShellBrowser)
-			{
-				return;
-			}
-			// Only select if the navigation actually landed in the expected directory.
-			if (ArePidlsEquivalent(request->GetShellBrowser()->GetDirectory().Raw(),
-					pidlParent.Raw()))
-			{
-				auto *sb = GetActiveShellBrowserImpl();
-				if (sb)
-				{
-					sb->SelectItems({ pidlToSelect });
-				}
-			}
-			// Disconnect the one-shot observer.
-			connectionHolder->disconnect();
-		},
-		NavigationEventScope::ForShellBrowser(*activeShellBrowser));
-
-	auto &activeTab = GetActivePane()->GetTabContainer()->GetSelectedTab();
-	activeTab.GetShellBrowserImpl()->GetNavigationController()->Navigate(navigateParams);
+	if (m_config->alwaysOpenNewTab)
+	{
+		tabContainer->CreateNewTab(navigateParams, { .selected = true });
+	}
+	else
+	{
+		auto &activeTab = tabContainer->GetSelectedTab();
+		activeTab.GetShellBrowserImpl()->GetNavigationController()->Navigate(navigateParams);
+	}
+	Activate();
 }
 
 
@@ -399,7 +391,10 @@ void Explorerplusplus::CreateSecondaryPane(const WindowStorageData *storageData)
 	m_connections.push_back(tabView->sizeUpdatedSignal.AddObserver([this] { UpdateLayout(); }));
 	auto *tabContainer = TabContainer::Create(tabView, this, &m_shellBrowserFactory, m_appServices);
 	m_secondaryBrowserPane = std::make_unique<BrowserPane>(BrowserPaneId::Right, tabContainer);
-	m_dualPaneSplitter = CreateWindow(WC_STATIC, L"Dual pane splitter",
+	CreateAddressBar(m_secondaryBrowserPane.get());
+	// Keep the splitter control text empty. Its width is only a few pixels, so the old label
+	// was clipped into stray glyphs in the middle of the dual-pane view.
+	m_dualPaneSplitter = CreateWindow(WC_STATIC, L"",
 		WS_CHILD | WS_VISIBLE | WS_TABSTOP | SS_NOTIFY, 0, 0, 0, 0, m_hwnd, nullptr,
 		GetModuleHandle(nullptr), nullptr);
 	m_windowSubclasses.push_back(std::make_unique<WindowSubclass>(m_dualPaneSplitter,

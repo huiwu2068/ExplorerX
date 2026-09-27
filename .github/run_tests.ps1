@@ -17,4 +17,4 @@ if ($Configuration -eq "Debug-Asan") {
     Initialize-DeveloperEnvironment -Platform $Platform
 }
 
-& ".\Explorer++\TestExplorer++\${Platform}\${Configuration}\TestExplorer++.exe"
+& ".\Explorer++\TestExplorerX\${Platform}\${Configuration}\TestExplorerX.exe"

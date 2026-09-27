@@ -6,6 +6,8 @@
 #include "../Helper/Pidl.h"
 #include "PidlTestHelper.h"
 #include "../Helper/ShellHelper.h"
+#include "../ExplorerX/ShellBrowser/ItemData.h"
+#include "../ExplorerX/ShellBrowser/FastPathEnumerator.h"
 #include <gtest/gtest.h>
 
 using namespace testing;
@@ -208,4 +210,42 @@ TEST(PidlAbsoluteEquality, Different)
 {
 	TestPidlEquality(L"c:\\", L"c:\\windows", false);
 	TestPidlEquality(L"c:\\", L"d:\\path\\to\\item", false);
+}
+
+TEST(PidlAbsolute, SubfolderParentResolution)
+{
+	auto rootPidl = CreateSimplePidlForTest(L"c:\\root");
+	auto subfolderPidl = CreateSimplePidlForTest(L"c:\\root\\subfolder");
+	auto filePidl = CreateSimplePidlForTest(L"c:\\root\\subfolder\\test.txt");
+
+	auto fileParent = filePidl;
+	ASSERT_TRUE(fileParent.RemoveLastItem());
+	EXPECT_TRUE(ArePidlsEquivalent(fileParent.Raw(), subfolderPidl.Raw()));
+	EXPECT_FALSE(ArePidlsEquivalent(fileParent.Raw(), rootPidl.Raw()));
+}
+
+TEST(OpenFileLocationTest, ParseAndMatch)
+{
+	std::wstring path = L"C:\\Windows\\notepad.exe";
+	unique_pidl_absolute fullPidl;
+	HRESULT hr = SHParseDisplayName(path.c_str(), nullptr, wil::out_param(fullPidl), 0, nullptr);
+	ASSERT_HRESULT_SUCCEEDED(hr);
+
+	unique_pidl_absolute parentPidl(ILCloneFull(fullPidl.get()));
+	ASSERT_TRUE(ILRemoveLastID(parentPidl.get()));
+
+	std::vector<ItemInfo_t> subItems;
+	bool ok = FastPathEnumerator::EnumerateDirectory(parentPidl.get(), true, subItems);
+	ASSERT_TRUE(ok);
+
+	bool found = false;
+	for (const auto &item : subItems)
+	{
+		if (ArePidlsEquivalent(fullPidl.get(), item.pidlComplete.Raw()))
+		{
+			found = true;
+			break;
+		}
+	}
+	EXPECT_TRUE(found);
 }

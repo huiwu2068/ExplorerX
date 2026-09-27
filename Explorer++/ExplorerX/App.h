@@ -91,7 +91,8 @@ private:
 	void OnExitStarted();
 
 	const CommandLine::Settings *const m_commandLineSettings;
-	SaveLocation m_saveLocation = SaveLocation::Registry;
+	// Prefer the portable XML configuration unless the user explicitly selects registry storage.
+	SaveLocation m_saveLocation = SaveLocation::ConfigFile;
 	AppServices m_appServices;
 	PlatformContextImpl m_platformContext;
 	Runtime m_runtime;

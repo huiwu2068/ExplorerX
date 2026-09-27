@@ -7,10 +7,6 @@
 #include "MainToolbarButtons.h"
 
 const MainToolbarButton DEFAULT_TOOLBAR_BUTTONS[] = {
-	MainToolbarButton::Back,
-	MainToolbarButton::Forward,
-	MainToolbarButton::Up,
-	MainToolbarButton::Separator,
 	MainToolbarButton::Folders,
 	MainToolbarButton::Separator,
 	MainToolbarButton::Cut,
@@ -27,8 +23,6 @@ const MainToolbarButton DEFAULT_TOOLBAR_BUTTONS[] = {
 	MainToolbarButton::Separator,
 	MainToolbarButton::Views,
 	MainToolbarButton::OpenCommandPrompt,
-	MainToolbarButton::WindowsTerminal,
-	MainToolbarButton::Refresh,
 	MainToolbarButton::Separator,
 	MainToolbarButton::AddBookmark,
 	MainToolbarButton::Bookmarks,

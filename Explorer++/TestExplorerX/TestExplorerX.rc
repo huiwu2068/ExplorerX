@@ -1,2 +1,2 @@
-#include "../Explorer++/Explorer++.rc"
-#include "../Explorer++/Explorer++_NoTranslation.rc"
+#include "../ExplorerX/ExplorerX.rc"
+#include "../ExplorerX/ExplorerX_NoTranslation.rc"

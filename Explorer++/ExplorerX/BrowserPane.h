@@ -5,6 +5,7 @@
 #pragma once
 
 class TabContainer;
+class AddressBar;
 
 enum class BrowserPaneId
 {
@@ -20,8 +21,11 @@ public:
 
 	BrowserPaneId GetId() const;
 	TabContainer *GetTabContainer() const;
+	AddressBar *GetAddressBar() const;
+	void SetAddressBar(AddressBar *addressBar);
 
 private:
 	const BrowserPaneId m_id;
 	TabContainer *m_tabContainer;
+	AddressBar *m_addressBar = nullptr;
 };

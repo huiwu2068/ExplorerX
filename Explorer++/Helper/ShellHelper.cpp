@@ -1000,6 +1000,19 @@ BOOL ArePidlsEquivalent(PCIDLIST_ABSOLUTE pidl1, PCIDLIST_ABSOLUTE pidl2)
 		pDesktopFolder->Release();
 	}
 
+	if (!ret && pidl1 && pidl2)
+	{
+		WCHAR szPath1[MAX_PATH];
+		WCHAR szPath2[MAX_PATH];
+		if (SHGetPathFromIDListW(pidl1, szPath1) && SHGetPathFromIDListW(pidl2, szPath2))
+		{
+			if (_wcsicmp(szPath1, szPath2) == 0)
+			{
+				ret = TRUE;
+			}
+		}
+	}
+
 	return ret;
 }
 
@@ -1169,7 +1182,18 @@ HRESULT ExecuteActionFromContextMenu(PCIDLIST_ABSOLUTE pidlDirectory,
 	IUnknown *site)
 {
 	wil::com_ptr_nothrow<IShellFolder> shellFolder;
-	RETURN_IF_FAILED(SHBindToObject(nullptr, pidlDirectory, nullptr, IID_PPV_ARGS(&shellFolder)));
+	HRESULT hr = S_OK;
+
+	if (!pidlDirectory || ILIsEmpty(pidlDirectory))
+	{
+		hr = SHGetDesktopFolder(&shellFolder);
+	}
+	else
+	{
+		hr = SHBindToObject(nullptr, pidlDirectory, nullptr, IID_PPV_ARGS(&shellFolder));
+	}
+
+	RETURN_IF_FAILED(hr);
 
 	wil::com_ptr_nothrow<IContextMenu> contextMenu;
 
@@ -1188,7 +1212,7 @@ HRESULT ExecuteActionFromContextMenu(PCIDLIST_ABSOLUTE pidlDirectory,
 		// The IObjectWithSite interface may not be available in some cases - for example, when the
 		// directory is a .zip file. So it's not safe to assume that this will always succeed.
 		wil::com_ptr_nothrow<IObjectWithSite> objectWithSite;
-		HRESULT hr = contextMenu->QueryInterface(IID_PPV_ARGS(&objectWithSite));
+		hr = contextMenu->QueryInterface(IID_PPV_ARGS(&objectWithSite));
 
 		if (SUCCEEDED(hr))
 		{

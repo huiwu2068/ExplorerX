@@ -3,7 +3,7 @@
 // See LICENSE in the top level directory
 
 #include "pch.h"
-#include "../Explorer++/Storage.h"
+#include "../ExplorerX/Storage.h"
 #include <gtest/gtest.h>
 
 TEST(StorageTest, ConfigEnvVar)

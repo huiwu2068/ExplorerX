@@ -3,6 +3,7 @@
 // See LICENSE in the top level directory
 
 #include "pch.h"
+#include <fstream>
 #include "ShellEnumeratorImpl.h"
 #include "ShellBrowser/FastPathEnumerator.h"
 #include "ResourceTestHelper.h"
@@ -212,6 +213,50 @@ TEST_F(ShellEnumeratorImplTest, ExpandableFolderSubfolderEnumeration)
 	EXPECT_TRUE(success);
 	ASSERT_EQ(subItems.size(), 1u);
 	EXPECT_STREQ(subItems[0].wfd.cFileName, L".gitkeep");
+
+	WCHAR pathBuf[MAX_PATH] = {};
+	SHGetPathFromIDList(subItems[0].pidlComplete.Raw(), pathBuf);
+	EXPECT_STREQ(pathBuf, (testDirectory / L"folder1" / L".gitkeep").c_str());
+	EXPECT_EQ(subItems[0].parsingName, (testDirectory / L"folder1" / L".gitkeep").wstring());
+
+	// Now test NESTED subfolder (2 levels deep, just like reported bug)
+	auto subfolderPath = testDirectory / L"folder1" / L"subfolder";
+	std::filesystem::create_directories(subfolderPath);
+	auto subfilePath = subfolderPath / L"test.md";
+	{
+		std::ofstream f(subfilePath);
+		f << "hello";
+	}
+
+	std::vector<ItemInfo_t> folder1Items;
+	bool successFolder1 = FastPathEnumerator::EnumerateDirectory(folder1Pidl.Raw(), true, folder1Items, stopSource.get_token());
+	EXPECT_TRUE(successFolder1);
+	auto subfolderIt = std::find_if(folder1Items.begin(), folder1Items.end(), [](const ItemInfo_t &item) {
+		return item.displayName == L"subfolder";
+	});
+	ASSERT_NE(subfolderIt, folder1Items.end());
+
+	// Enumerate the nested subfolder using its pidlComplete
+	std::vector<ItemInfo_t> nestedItems;
+	bool successNested = FastPathEnumerator::EnumerateDirectory(subfolderIt->pidlComplete.Raw(), true, nestedItems, stopSource.get_token());
+	EXPECT_TRUE(successNested);
+	ASSERT_FALSE(nestedItems.empty());
+
+	WCHAR nestedPathBuf[MAX_PATH] = {};
+	SHGetPathFromIDList(nestedItems[0].pidlComplete.Raw(), nestedPathBuf);
+	EXPECT_STREQ(nestedPathBuf, subfilePath.c_str());
+
+	wil::unique_cotaskmem_string nestedParsingPath;
+	HRESULT hrNested = SHGetNameFromIDList(nestedItems[0].pidlComplete.Raw(), SIGDN_DESKTOPABSOLUTEPARSING, &nestedParsingPath);
+	EXPECT_HRESULT_SUCCEEDED(hrNested);
+	if (SUCCEEDED(hrNested))
+	{
+		EXPECT_EQ(std::wstring(nestedParsingPath.get()), subfilePath.wstring());
+	}
+
+	// Clean up created files
+	std::error_code ec;
+	std::filesystem::remove_all(subfolderPath, ec);
 
 	// Simulate parenting & depth setting as done in ShellBrowserImpl::ExpandFolder
 	subItems[0].depth = 1;

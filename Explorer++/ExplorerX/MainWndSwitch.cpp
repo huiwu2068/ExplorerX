@@ -273,7 +273,7 @@ LRESULT Explorerplusplus::CommandHandler(HWND hwnd, HWND control, UINT id, UINT 
 
 	if (control && notificationCode != 0)
 	{
-		return HandleControlNotification(hwnd, notificationCode);
+		return HandleControlNotification(control, notificationCode);
 	}
 	else
 	{
@@ -977,12 +977,13 @@ LRESULT Explorerplusplus::HandleMenuOrToolbarButtonOrAccelerator(HWND hwnd, UINT
 		break;
 
 	case IDA_ADDRESSBAR:
-		SetFocus(m_addressBar->GetView()->GetHWND());
+		GetActivePane()->GetAddressBar()->GetView()->FocusEditControl();
 		break;
 
 	case IDA_COMBODROPDOWN:
-		SetFocus(m_addressBar->GetView()->GetHWND());
-		SendMessage(m_addressBar->GetView()->GetHWND(), CB_SHOWDROPDOWN, TRUE, 0);
+		GetActivePane()->GetAddressBar()->GetView()->FocusEditControl();
+		SendMessage(GetActivePane()->GetAddressBar()->GetView()->GetHWND(), CB_SHOWDROPDOWN,
+			TRUE, 0);
 		break;
 
 	case IDA_PREVIOUSWINDOW:
@@ -1021,15 +1022,22 @@ LRESULT Explorerplusplus::HandleMenuOrToolbarButtonOrAccelerator(HWND hwnd, UINT
 	return 1;
 }
 
-LRESULT Explorerplusplus::HandleControlNotification(HWND hwnd, UINT notificationCode)
+LRESULT Explorerplusplus::HandleControlNotification(HWND control, UINT notificationCode)
 {
-	UNREFERENCED_PARAMETER(hwnd);
-
 	switch (notificationCode)
 	{
 	case CBN_DROPDOWN:
-		AddPathsToComboBoxEx(m_addressBar->GetView()->GetHWND(),
-			m_pActiveShellBrowser->GetDirectoryPath().c_str());
+		for (BrowserPane *pane : { m_browserPane.get(), m_secondaryBrowserPane.get() })
+		{
+			if (pane && pane->GetAddressBar()
+				&& pane->GetAddressBar()->GetView()->GetHWND() == control)
+			{
+				AddPathsToComboBoxEx(control,
+					pane->GetTabContainer()->GetSelectedTab().GetShellBrowserImpl()
+						->GetDirectoryPath().c_str());
+				break;
+			}
+		}
 		break;
 	}
 
@@ -1119,12 +1127,34 @@ LRESULT CALLBACK Explorerplusplus::NotifyHandler(HWND hwnd, UINT msg, WPARAM wPa
 		break;
 
 	case NM_RCLICK:
+	{
+		bool addressBarRightClick = false;
+		for (BrowserPane *pane : { m_browserPane.get(), m_secondaryBrowserPane.get() })
+		{
+			if (!pane || !pane->GetAddressBar())
+			{
+				continue;
+			}
+			auto *addressBarView = pane->GetAddressBar()->GetView();
+			if (nmhdr->hwndFrom == addressBarView->GetHWND()
+				|| nmhdr->hwndFrom == addressBarView->GetContainerHWND()
+				|| nmhdr->hwndFrom == addressBarView->GetBreadcrumbToolbarHWND())
+			{
+				addressBarRightClick = true;
+				break;
+			}
+		}
+		if (addressBarRightClick && OnToolbarRightClick(reinterpret_cast<NMMOUSE *>(lParam)))
+		{
+			return 0;
+		}
 		if (nmhdr->hwndFrom == m_everythingSearchListView)
 		{
 			ShowEverythingSearchResultContextMenu();
 			return 0;
 		}
 		break;
+	}
 
 	case TBN_ENDADJUST:
 		if (GetLifecycleState() == LifecycleState::Main)

@@ -8,6 +8,7 @@
 #include "Config.h"
 #include "DocumentServiceProvider.h"
 #include "FeatureList.h"
+#include "FolderView.h"
 #include "HistoryEntry.h"
 #include "IconFetcher.h"
 #include "ItemData.h"
@@ -132,7 +133,11 @@ void ShellBrowserImpl::NotifyShellOfNavigation(PCIDLIST_ABSOLUTE pidl)
 		return;
 	}
 
-	m_shellWindows->OnNavigate(m_shellWindowCookie.get(), &pidlVariant);
+	hr = m_shellWindows->OnNavigate(m_shellWindowCookie.get(), &pidlVariant);
+	if (SUCCEEDED(hr))
+	{
+		m_pendingShellWindowCookie.reset();
+	}
 }
 
 HRESULT ShellBrowserImpl::RegisterShellWindowIfNecessary(PCIDLIST_ABSOLUTE pidl)
@@ -203,47 +208,24 @@ HRESULT ShellBrowserImpl::RegisterShellWindow(PCIDLIST_ABSOLUTE pidl)
 	// case, it's redundant, since IShellWindows::OnNavigate() will be called anyway, which will
 	// supply a pidl, but it appears that that's not enough.
 	// Therefore, that's the only reason this method is called.
+	m_pendingShellWindowCookie.associate(m_shellWindows.get());
 	RETURN_IF_FAILED(m_shellWindows->RegisterPending(GetCurrentThreadId(), &pidlVariant, &empty,
-		SWC_BROWSER, &m_shellWindowCookie));
+		SWC_BROWSER, &m_pendingShellWindowCookie));
 
+	auto shellView = winrt::make_self<ShellView>(m_weakPtrFactory.GetWeakPtr(), true);
+	auto folderView = winrt::make<FolderView>(m_weakPtrFactory.GetWeakPtr());
 	auto document = winrt::make_self<DocumentServiceProvider>();
-	document->RegisterService(IID_IFolderView,
-		winrt::make_self<ShellView>(m_weakPtrFactory.GetWeakPtr(), true));
+	document->RegisterService(IID_IFolderView, folderView);
+	document->RegisterService(IID_IShellView, shellView);
+	document->RegisterService(SID_SFolderView, folderView);
 
 	auto browserApp = winrt::make_self<WebBrowserApp>(m_owner, document.get());
 
-	// Registering the same window multiple times (ultimately with different pidls) is odd, but
-	// appears to work fine (since a shell window is uniquely identified through a cookie, rather
-	// than a window handle).
-	// Registering each listview wouldn't work, as it wouldn't make sense for the shell to bring the
-	// listview windows to the foreground or activate them (doing so would break the way tabs are
-	// managed).
-	// This has implications for the way the appropriate tab is selected. Since the shell will only
-	// bring the top-level window to the foreground, the appropriate tab will be selected when the
-	// item selection is set (via a call to the IShellView instance set up above).
-	// Note that the cast from HWND to long causes warnings, but the warnings can be safely ignored.
-	// Only the lower 32 bits of a handle are important (see the discussion at
-	// https://stackoverflow.com/q/1822667).
-	long registeredCookie;
-#ifdef __clang__
-	#pragma clang diagnostic push
-	#pragma clang diagnostic ignored "-Wpointer-to-int-cast"
-#endif
-#pragma warning(push)
-#pragma warning(                                                                                   \
-	disable : 4311 4302) // 'reinterpret_cast': pointer truncation from 'HWND' to 'long',
-						 // 'reinterpret_cast': truncation from 'HWND' to 'long'
-	RETURN_IF_FAILED(m_shellWindows->Register(browserApp.get(), reinterpret_cast<long>(m_owner),
-		SWC_BROWSER, &registeredCookie));
-#pragma warning(pop)
-#ifdef __clang__
-	#pragma clang diagnostic pop
-#endif
-
-	// The call to RegisterPending() above is passed the thread ID. The call to Register() will use
-	// that thread ID to link a pending window to the specified window handle. That means the cookie
-	// values for the two calls should be the same - since they refer to the same window instance.
-	DCHECK(registeredCookie == m_shellWindowCookie.get());
+	// Register() creates a different cookie. Keep the pending entry until OnNavigate publishes the
+	// live view, then revoke it.
+	RETURN_IF_FAILED(m_shellWindows->Register(browserApp.get(),
+		static_cast<long>(reinterpret_cast<intptr_t>(m_owner)),
+		SWC_BROWSER, &m_shellWindowCookie));
 
 	return S_OK;
 }
@@ -500,21 +482,28 @@ void ShellBrowserImpl::AddNavigationItems(const NavigationRequest *request,
 	InsertAwaitingItems();
 	SortFolder();
 
-	ListView_EnsureVisible(m_listView, 0, FALSE);
-
-	/* Set the focus back to the first item. */
-	ListView_SetItemState(m_listView, 0, LVIS_FOCUSED, LVIS_FOCUSED);
-
 	// A history entry should be created when the navigation is committed, so the current entry
 	// should always be for the current navigation.
 	auto *currentEntry = m_navigationController->GetCurrentEntry();
 	DCHECK(currentEntry->GetPidl() == request->GetNavigateParams().pidl);
 
-	SelectItems(currentEntry->GetSelectedItems());
-
-	if (request->GetNavigateParams().navigationType == NavigationType::Up)
+	if (!request->GetNavigateParams().filesToSelect.empty())
+	{
+		SelectItems(request->GetNavigateParams().filesToSelect);
+		SetFocus(m_listView);
+	}
+	else if (!currentEntry->GetSelectedItems().empty())
+	{
+		SelectItems(currentEntry->GetSelectedItems());
+	}
+	else if (request->GetNavigateParams().navigationType == NavigationType::Up)
 	{
 		SelectItems({ request->GetNavigateParams().originalPidl });
+	}
+	else
+	{
+		ListView_EnsureVisible(m_listView, 0, FALSE);
+		ListView_SetItemState(m_listView, 0, LVIS_FOCUSED, LVIS_FOCUSED);
 	}
 }
 

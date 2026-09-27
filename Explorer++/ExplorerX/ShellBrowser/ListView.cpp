@@ -301,7 +301,9 @@ void ShellBrowserImpl::OnListViewDoubleClick(const NMITEMACTIVATE *eventInfo)
 
 	if (WI_IsFlagSet(eventInfo->uKeyFlags, LVKF_ALT))
 	{
-		ShowMultipleFileProperties(m_directoryState.pidlDirectory.Raw(), { item.pridl.Raw() },
+		unique_pidl_absolute parent(ILCloneFull(item.pidlComplete.Raw()));
+		ILRemoveLastID(parent.get());
+		ShowMultipleFileProperties(parent.get(), { ILFindLastID(item.pidlComplete.Raw()) },
 			m_owner);
 	}
 	else
@@ -514,13 +516,43 @@ void ShellBrowserImpl::ShowItemContextMenu(const POINT &pt)
 	}
 
 	std::vector<PCITEMID_CHILD> childPidls;
+	PCIDLIST_ABSOLUTE parentDirectory = nullptr;
+	unique_pidl_absolute commonParent;
 
-	for (const auto &item : selectedItems)
+	bool allSameParent = true;
+	unique_pidl_absolute firstParent(ILCloneFull(selectedItems[0].Raw()));
+	ILRemoveLastID(firstParent.get());
+
+	for (size_t i = 1; i < selectedItems.size(); ++i)
 	{
-		childPidls.push_back(ILFindLastID(item.Raw()));
+		unique_pidl_absolute itemParent(ILCloneFull(selectedItems[i].Raw()));
+		ILRemoveLastID(itemParent.get());
+		if (!ArePidlsEquivalent(firstParent.get(), itemParent.get()))
+		{
+			allSameParent = false;
+			break;
+		}
 	}
 
-	ShellItemContextMenu contextMenu(m_directoryState.pidlDirectory.Raw(), childPidls, m_browser);
+	if (allSameParent)
+	{
+		commonParent = std::move(firstParent);
+		parentDirectory = commonParent.get();
+		for (const auto &item : selectedItems)
+		{
+			childPidls.push_back(ILFindLastID(item.Raw()));
+		}
+	}
+	else
+	{
+		parentDirectory = nullptr;
+		for (const auto &item : selectedItems)
+		{
+			childPidls.push_back(reinterpret_cast<PCITEMID_CHILD>(item.Raw()));
+		}
+	}
+
+	ShellItemContextMenu contextMenu(parentDirectory, childPidls, m_browser);
 
 	OpenItemsContextMenuDelegate openItemsDelegate(m_browser, m_resourceLoader);
 	contextMenu.AddDelegate(&openItemsDelegate);
@@ -1071,20 +1103,51 @@ void ShellBrowserImpl::MarkItemAsCut(int item, bool cut)
 
 void ShellBrowserImpl::ShowPropertiesForSelectedItems() const
 {
-	std::vector<unique_pidl_child> pidls;
-	std::vector<PCITEMID_CHILD> rawPidls;
+	auto selectedItems = GetSelectedItemPidls();
 
-	int item = -1;
-
-	while ((item = ListView_GetNextItem(m_listView, item, LVNI_SELECTED)) != -1)
+	if (selectedItems.empty())
 	{
-		auto pidl = GetItemChildIdl(item);
-
-		rawPidls.push_back(pidl.get());
-		pidls.push_back(std::move(pidl));
+		return;
 	}
 
-	ShowMultipleFileProperties(m_directoryState.pidlDirectory.Raw(), rawPidls, m_owner);
+	std::vector<PCITEMID_CHILD> childPidls;
+	PCIDLIST_ABSOLUTE parentDirectory = nullptr;
+	unique_pidl_absolute commonParent;
+
+	bool allSameParent = true;
+	unique_pidl_absolute firstParent(ILCloneFull(selectedItems[0].Raw()));
+	ILRemoveLastID(firstParent.get());
+
+	for (size_t i = 1; i < selectedItems.size(); ++i)
+	{
+		unique_pidl_absolute itemParent(ILCloneFull(selectedItems[i].Raw()));
+		ILRemoveLastID(itemParent.get());
+		if (!ArePidlsEquivalent(firstParent.get(), itemParent.get()))
+		{
+			allSameParent = false;
+			break;
+		}
+	}
+
+	if (allSameParent)
+	{
+		commonParent = std::move(firstParent);
+		parentDirectory = commonParent.get();
+		for (const auto &item : selectedItems)
+		{
+			childPidls.push_back(ILFindLastID(item.Raw()));
+		}
+	}
+	else
+	{
+		parentDirectory = nullptr;
+		for (const auto &item : selectedItems)
+		{
+			childPidls.push_back(reinterpret_cast<PCITEMID_CHILD>(item.Raw()));
+		}
+	}
+
+	ShowMultipleFileProperties(parentDirectory, childPidls, m_owner);
 }
 
 void ShellBrowserImpl::OpenSelectedItems()
@@ -1631,7 +1694,9 @@ BOOL ShellBrowserImpl::OnListViewEndLabelEdit(const NMLVDISPINFO *dispInfo)
 	// singular name for shell items. The display name of a shell item (e.g. the drive label) can
 	// change, even if the parsing name remains the same. Comparing the parsing names will show that
 	// they're equivalent. It's easier just to update the item, regardless.
-	unique_pidl_absolute pidlNew(ILCombine(m_directoryState.pidlDirectory.Raw(), newChild.get()));
+	unique_pidl_absolute parentPidl(ILCloneFull(item.pidlComplete.Raw()));
+	ILRemoveLastID(parentPidl.get());
+	unique_pidl_absolute pidlNew(ILCombine(parentPidl.get(), newChild.get()));
 	UpdateItem(item.pidlComplete.Raw(), pidlNew.get());
 
 	// The text will be set by UpdateItem. It's not safe to return true here, since items can sorted
