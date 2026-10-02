@@ -178,6 +178,31 @@ TEST_P(BookmarkDropperShellItemTest, Drop)
 	EXPECT_THAT(bookmarkItem->GetLocation(), StrCaseEq(m_itemPath));
 }
 
+TEST_P(BookmarkDropperShellItemTest, DropAsLink)
+{
+	BookmarkDropper dropper(m_dataObject.get(), DROPEFFECT_LINK, &m_bookmarkTree);
+	DWORD effect = dropper.PerformDrop(m_bookmarkTree.GetBookmarksToolbarFolder(), 0);
+	ASSERT_EQ(effect, static_cast<DWORD>(DROPEFFECT_LINK));
+	ASSERT_EQ(m_bookmarkTree.GetBookmarksToolbarFolder()->GetChildren().size(), 1U);
+	const auto *bookmark = m_bookmarkTree.GetBookmarksToolbarFolder()->GetChildren()[0].get();
+	EXPECT_EQ(bookmark->GetName(), m_itemName);
+	EXPECT_THAT(bookmark->GetLocation(), StrCaseEq(m_itemPath));
+}
+
+TEST_P(BookmarkDropperShellItemTest, DropAsLinkIntoBookmarkFolder)
+{
+	auto *folder = m_bookmarkTree.AddBookmarkItem(
+		m_bookmarkTree.GetBookmarksToolbarFolder(),
+		std::make_unique<BookmarkItem>(std::nullopt, L"Folder", std::nullopt));
+	BookmarkDropper dropper(m_dataObject.get(), DROPEFFECT_LINK, &m_bookmarkTree);
+	DWORD effect = dropper.PerformDrop(folder, 0);
+	ASSERT_EQ(effect, static_cast<DWORD>(DROPEFFECT_LINK));
+	ASSERT_EQ(folder->GetChildren().size(), 1U);
+	const auto *bookmark = folder->GetChildren()[0].get();
+	EXPECT_EQ(bookmark->GetName(), m_itemName);
+	EXPECT_THAT(bookmark->GetLocation(), StrCaseEq(m_itemPath));
+}
+
 // It should be possible to drop both files and folders. The BookmarkDropperShellItemTest suite will
 // be run for both a file item and a folder item.
 INSTANTIATE_TEST_SUITE_P(FileAndFolder, BookmarkDropperShellItemTest,

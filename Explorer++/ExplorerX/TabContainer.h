@@ -139,6 +139,7 @@ private:
 
 	// TabViewDelegate
 	void OnTabMoved(int fromIndex, int toIndex) override;
+	void OnTabDraggedOutside(int index) override;
 	bool ShouldRemoveIcon(int iconIndex) override;
 	void OnSelectionChanged() override;
 

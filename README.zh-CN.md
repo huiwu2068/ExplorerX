@@ -17,6 +17,12 @@ ExplorerX 是面向 Windows 的快速、便携文件管理器：保留原生 She
 | 命令行工作流 | 可从当前文件夹打开 Windows Terminal。 |
 | 保持 Windows 体验 | 完整复用 Windows 原生右键菜单和 Shell 扩展；7-Zip、Git、VS Code、WinRAR、杀毒软件等已安装扩展仍由系统处理。 |
 
+## 最新版本：[v1.5.2](https://github.com/huiwu2068/ExplorerX/releases/tag/v1.5.2)
+
+- 将文件夹标签拖出标签栏，即可收藏到书签栏或书签文件夹；Everything 搜索结果标签不支持此操作。
+- Details 视图中的目录就地展开现在采用异步加载，并在 WSL 等位置使用 Windows Shell 枚举回退。空目录不显示展开箭头，点击箭头也不会误触发进入目录。
+- 修复一个窗格没有标签、另一个窗格切换标签或导航时可能导致的地址栏崩溃。
+
 ## 主要功能
 
 ### Everything 搜索
@@ -35,6 +41,7 @@ ExplorerX 是面向 Windows 的快速、便携文件管理器：保留原生 She
 - 在 Details 视图中，文件夹可在当前列表内展开成层级结构。
 - 使用展开箭头，或通过键盘 `Right` 展开、`Left` 收起；无需反复进入和返回目录。
 - 子项加载采用异步快速路径；层级排序、选择、拖放和原生 Shell 右键菜单继续可用。
+- Shell 枚举回退支持虚拟位置和 WSL；探测空目录或无权访问的目录时不会显示 Shell 错误弹窗。
 
 ### 原生而轻量的性能优化
 

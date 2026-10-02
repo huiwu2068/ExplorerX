@@ -438,6 +438,20 @@ void TabView::OnMouseMove(const POINT &pt)
 		return;
 	}
 
+	RECT clientRect;
+	GetClientRect(m_hwnd, &clientRect);
+	if (!PtInRect(&clientRect, pt))
+	{
+		auto draggedTabIndex = MaybeGetSelectedIndex();
+		m_tabDragState.reset();
+		ReleaseCapture();
+		if (draggedTabIndex && m_delegate)
+		{
+			m_delegate->OnTabDraggedOutside(*draggedTabIndex);
+		}
+		return;
+	}
+
 	// The tab being dragged will always be the selected tab.
 	int draggedTabIndex = GetSelectedIndex();
 

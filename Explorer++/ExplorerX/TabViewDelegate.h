@@ -11,6 +11,7 @@ public:
 	virtual ~TabViewDelegate() = default;
 
 	virtual void OnTabMoved(int fromIndex, int toIndex) = 0;
+	virtual void OnTabDraggedOutside(int index) = 0;
 
 	// This will be called by the view when an icon may no longer be required (e.g. when the icon
 	// for a tab changes, or a tab is removed). If the method returns true, it indicates that the

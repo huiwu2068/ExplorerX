@@ -488,6 +488,11 @@ bool Explorerplusplus::CanMoveTabToOtherPane(const Tab &tab) const
 		|| source == m_secondaryBrowserPane->GetTabContainer();
 }
 
+bool Explorerplusplus::CanBookmarkTab(const Tab &tab) const
+{
+	return !m_everythingSearchTabs.contains(tab.GetId());
+}
+
 void Explorerplusplus::MoveTabToOtherPane(Tab &tab)
 {
 	if (!CanMoveTabToOtherPane(tab))

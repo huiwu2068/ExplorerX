@@ -564,18 +564,99 @@ void ShellBrowserImpl::ExpandFolder(int itemIndex)
 	{
 		return;
 	}
+	if (parentInfo.hasChildrenChecked && !parentInfo.hasChildren)
+	{
+		return;
+	}
+
+	parentInfo.isExpanded = true;
+	int requestId = ++parentInfo.expansionRequestId;
+	ExpandFolderAsync(GetWeakPtr(), parentInfo.pidlComplete, parentInternalIndex, requestId,
+		m_folderSettings.showHidden, m_shellEnumerator,
+		m_appServices->GetRuntime()->GetComStaExecutor(),
+		m_appServices->GetRuntime()->GetUiThreadExecutor());
+	InvalidateRect(m_listView, nullptr, FALSE);
+}
+
+concurrencpp::null_result ShellBrowserImpl::ExpandFolderAsync(WeakPtr<ShellBrowserImpl> weakSelf,
+	PidlAbsolute folderPidl, int parentInternalIndex, int requestId, bool showHidden,
+	std::shared_ptr<ShellEnumeratorImpl> shellEnumerator,
+	std::shared_ptr<concurrencpp::executor> backgroundExecutor,
+	std::shared_ptr<concurrencpp::executor> uiExecutor)
+{
+	co_await concurrencpp::resume_on(backgroundExecutor);
 
 	std::vector<ItemInfo_t> subItems;
-	bool showHidden = m_folderSettings.showHidden;
-
-	// Use FastPathEnumerator to fetch directory contents
 	bool enumOk = FastPathEnumerator::EnumerateDirectory(
-		parentInfo.pidlComplete.Raw(), showHidden, subItems);
+		folderPidl.Raw(), showHidden, subItems);
+	if (!enumOk)
+	{
+		const auto hiddenPolicy = showHidden ? ShellItemFilter::HiddenItemPolicy::Include
+			: ShellItemFilter::HiddenItemPolicy::Exclude;
+		bool hasVisibleChildren = false;
+		HRESULT probeResult = shellEnumerator->HasVisibleChildren(folderPidl.Raw(),
+			hiddenPolicy, hasVisibleChildren);
+		if (FAILED(probeResult) || !hasVisibleChildren)
+		{
+			enumOk = SUCCEEDED(probeResult);
+		}
+		else
+		{
+			std::vector<PidlChild> childPidls;
+			HRESULT hr = shellEnumerator->EnumerateDirectoryWithoutUI(folderPidl.Raw(),
+				ShellItemFilter::ItemType::FoldersAndFiles, hiddenPolicy, childPidls, {});
+			enumOk = SUCCEEDED(hr);
+			if (enumOk)
+			{
+				wil::com_ptr_nothrow<IShellFolder> shellFolder;
+				enumOk = SUCCEEDED(SHBindToObject(nullptr, folderPidl.Raw(), nullptr,
+					IID_PPV_ARGS(&shellFolder)));
+				if (enumOk)
+				{
+					subItems.reserve(childPidls.size());
+					for (const auto &childPidl : childPidls)
+					{
+						auto item = GetItemInformation(shellFolder.get(), folderPidl.Raw(),
+							childPidl.Raw());
+						if (item)
+						{
+							subItems.push_back(std::move(*item));
+						}
+					}
+				}
+			}
+		}
+	}
+
+	co_await concurrencpp::resume_on(uiExecutor);
+	if (weakSelf)
+	{
+		weakSelf->InsertExpandedItems(parentInternalIndex, requestId, std::move(subItems), enumOk);
+	}
+}
+
+void ShellBrowserImpl::InsertExpandedItems(int parentInternalIndex, int requestId,
+	std::vector<ItemInfo_t> subItems, bool enumOk)
+{
+	auto parentIt = m_itemInfoMap.find(parentInternalIndex);
+	if (parentIt == m_itemInfoMap.end() || !parentIt->second.isExpanded
+		|| parentIt->second.expansionRequestId != requestId)
+	{
+		return;
+	}
+
+	ItemInfo_t &parentInfo = parentIt->second;
+	auto parentVisualIndex = LocateItemByInternalIndex(parentInternalIndex);
+	if (!parentVisualIndex)
+	{
+		return;
+	}
 
 	if (!enumOk || subItems.empty())
 	{
-		parentInfo.hasChildren = false;
 		parentInfo.isExpanded = false;
+		parentInfo.hasChildren = false;
+		parentInfo.hasChildrenChecked = true;
 		InvalidateRect(m_listView, nullptr, FALSE);
 		return;
 	}
@@ -583,8 +664,9 @@ void ShellBrowserImpl::ExpandFolder(int itemIndex)
 	parentInfo.isExpanded = true;
 	parentInfo.hasChildrenLoaded = true;
 	parentInfo.hasChildren = true;
+	parentInfo.hasChildrenChecked = true;
 
-	int insertVisualPos = itemIndex + 1;
+	int insertVisualPos = *parentVisualIndex + 1;
 	for (auto &subItem : subItems)
 	{
 		subItem.depth = parentInfo.depth + 1;
@@ -593,6 +675,7 @@ void ShellBrowserImpl::ExpandFolder(int itemIndex)
 		subItem.isExpanded = false;
 		subItem.hasChildrenLoaded = false;
 		subItem.hasChildren = (subItem.wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+		subItem.hasChildrenChecked = !subItem.hasChildren;
 
 		int newId = GenerateUniqueItemId();
 		m_itemInfoMap.insert({ newId, subItem });
@@ -637,6 +720,7 @@ void ShellBrowserImpl::CollapseFolder(int itemIndex)
 	}
 
 	parentInfo.isExpanded = false;
+	++parentInfo.expansionRequestId;
 
 	int count = ListView_GetItemCount(m_listView);
 	std::vector<int> internalIndicesToRemove;
@@ -680,6 +764,68 @@ bool ShellBrowserImpl::IsDescendantOf(int internalIndex, int targetParentInterna
 		}
 	}
 	return false;
+}
+
+void ShellBrowserImpl::CheckFolderChildren(int internalIndex)
+{
+	auto it = m_itemInfoMap.find(internalIndex);
+	if (it == m_itemInfoMap.end())
+	{
+		return;
+	}
+
+	ItemInfo_t &item = it->second;
+	if (item.hasChildrenChecked || item.isCheckingChildren || item.isExpanded
+		|| !(item.wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+	{
+		return;
+	}
+
+	item.isCheckingChildren = true;
+	CheckFolderChildrenAsync(GetWeakPtr(), item.pidlComplete, internalIndex,
+		m_folderSettings.showHidden, m_shellEnumerator,
+		m_appServices->GetRuntime()->GetComStaExecutor(),
+		m_appServices->GetRuntime()->GetUiThreadExecutor());
+}
+
+concurrencpp::null_result ShellBrowserImpl::CheckFolderChildrenAsync(
+	WeakPtr<ShellBrowserImpl> weakSelf, PidlAbsolute folderPidl, int internalIndex,
+	bool showHidden, std::shared_ptr<ShellEnumeratorImpl> shellEnumerator,
+	std::shared_ptr<concurrencpp::executor> backgroundExecutor,
+	std::shared_ptr<concurrencpp::executor> uiExecutor)
+{
+	co_await concurrencpp::resume_on(backgroundExecutor);
+
+	bool hasChildren = false;
+	HRESULT hr = shellEnumerator->HasVisibleChildren(folderPidl.Raw(),
+		showHidden ? ShellItemFilter::HiddenItemPolicy::Include
+				   : ShellItemFilter::HiddenItemPolicy::Exclude,
+		hasChildren);
+
+	co_await concurrencpp::resume_on(uiExecutor);
+	if (!weakSelf)
+	{
+		co_return;
+	}
+
+	auto it = weakSelf->m_itemInfoMap.find(internalIndex);
+	if (it == weakSelf->m_itemInfoMap.end())
+	{
+		co_return;
+	}
+
+	ItemInfo_t &item = it->second;
+	item.isCheckingChildren = false;
+	if (!item.isExpanded && !item.hasChildrenLoaded)
+	{
+		item.hasChildren = SUCCEEDED(hr) && hasChildren;
+		item.hasChildrenChecked = true;
+		auto visualIndex = weakSelf->LocateItemByInternalIndex(internalIndex);
+		if (visualIndex)
+		{
+			ListView_RedrawItems(weakSelf->m_listView, *visualIndex, *visualIndex);
+		}
+	}
 }
 
 void ShellBrowserImpl::DrawChevron(HDC hdc, const RECT &rcChevron, bool isExpanded)

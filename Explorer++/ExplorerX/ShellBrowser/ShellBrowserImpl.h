@@ -472,9 +472,23 @@ private:
 	bool IsExpandableFoldersEnabled() const;
 	void ToggleFolderExpanded(int itemIndex);
 	void ExpandFolder(int itemIndex);
+	static concurrencpp::null_result ExpandFolderAsync(WeakPtr<ShellBrowserImpl> weakSelf,
+		PidlAbsolute folderPidl, int parentInternalIndex, int requestId, bool showHidden,
+		std::shared_ptr<ShellEnumeratorImpl> shellEnumerator,
+		std::shared_ptr<concurrencpp::executor> backgroundExecutor,
+		std::shared_ptr<concurrencpp::executor> uiExecutor);
+	void InsertExpandedItems(int parentInternalIndex, int requestId,
+		std::vector<ItemInfo_t> subItems, bool enumOk);
 	void CollapseFolder(int itemIndex);
 	bool IsDescendantOf(int internalIndex, int targetParentInternalIndex) const;
+	void CheckFolderChildren(int internalIndex);
+	static concurrencpp::null_result CheckFolderChildrenAsync(WeakPtr<ShellBrowserImpl> weakSelf,
+		PidlAbsolute folderPidl, int internalIndex, bool showHidden,
+		std::shared_ptr<ShellEnumeratorImpl> shellEnumerator,
+		std::shared_ptr<concurrencpp::executor> backgroundExecutor,
+		std::shared_ptr<concurrencpp::executor> uiExecutor);
 	bool OnListViewLeftButtonDown(const POINT *pt);
+	bool IsFolderChevronHit(const POINT &pt, int *itemIndex = nullptr) const;
 	void DrawChevron(HDC hdc, const RECT &rcChevron, bool isExpanded);
 
 	/* Listview column support. */

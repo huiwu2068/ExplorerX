@@ -1,6 +1,16 @@
 Explorer++ Version History
 --------------------------
 
+Custom release v1.5.2
+---------------------
+New features and improvements:
+- Tabs for filesystem folders can be dragged out of the tab bar to create a bookmark in the bookmarks toolbar or a bookmark folder. Everything result tabs are excluded.
+- Folder expansion in Details view loads asynchronously and falls back to Windows Shell enumeration for locations such as WSL.
+- Empty folders no longer show an expand chevron, and clicking a chevron does not activate folder navigation.
+
+Bug fixes:
+- Fixed an address bar crash when one pane has no tabs and another pane changes selection or navigates.
+
 Custom release v1.5.0
 ---------------------
 New features:

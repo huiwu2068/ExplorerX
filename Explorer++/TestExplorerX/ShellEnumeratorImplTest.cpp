@@ -120,6 +120,106 @@ TEST_F(ShellEnumeratorImplTest, IncludeHidden)
 		{ L"folder1", L"folder2", L"item1.txt", L"item2.txt", L"item3.txt", L"hidden.txt" });
 }
 
+TEST_F(ShellEnumeratorImplTest, HasVisibleChildrenIncludesFilesAndSkipsEmptyFolders)
+{
+	ShellEnumeratorImpl shellEnumerator(nullptr);
+	auto folderPath = GetEnumerationTestDirectory() / L"empty-folder-probe";
+	ASSERT_TRUE(std::filesystem::create_directory(folderPath));
+	auto cleanup = wil::scope_exit([&folderPath]
+		{ std::error_code error; std::filesystem::remove_all(folderPath, error); });
+
+	PidlAbsolute folderPidl;
+	ASSERT_HRESULT_SUCCEEDED(SHParseDisplayName(folderPath.c_str(), nullptr,
+		PidlOutParam(folderPidl), 0, nullptr));
+
+	bool hasChildren = true;
+	ASSERT_HRESULT_SUCCEEDED(shellEnumerator.HasVisibleChildren(folderPidl.Raw(),
+		ShellItemFilter::HiddenItemPolicy::Exclude, hasChildren));
+	EXPECT_FALSE(hasChildren);
+
+	{
+		std::ofstream file(folderPath / L"only-file.txt");
+		file << "content";
+	}
+	ASSERT_HRESULT_SUCCEEDED(shellEnumerator.HasVisibleChildren(folderPidl.Raw(),
+		ShellItemFilter::HiddenItemPolicy::Exclude, hasChildren));
+	EXPECT_TRUE(hasChildren);
+
+}
+
+TEST_F(ShellEnumeratorImplTest, WslShellEnumerationFallback)
+{
+	wchar_t path[MAX_PATH]{};
+	DWORD length = GetEnvironmentVariableW(L"EXPLORERX_TEST_WSL_PATH", path, MAX_PATH);
+	if (length == 0)
+	{
+		GTEST_SKIP() << "Set EXPLORERX_TEST_WSL_PATH to a WSL folder to run this test";
+	}
+	ASSERT_LT(length, static_cast<DWORD>(std::size(path)));
+
+	PidlAbsolute folderPidl;
+	ASSERT_HRESULT_SUCCEEDED(SHParseDisplayName(path, nullptr,
+		PidlOutParam(folderPidl), 0, nullptr));
+
+	std::wstring physicalPath;
+	EXPECT_FALSE(FastPathEnumerator::IsPhysicalDirectory(folderPidl.Raw(), physicalPath));
+
+	ShellEnumeratorImpl shellEnumerator(nullptr);
+	std::vector<PidlChild> children;
+	ASSERT_HRESULT_SUCCEEDED(shellEnumerator.EnumerateDirectoryWithoutUI(folderPidl.Raw(),
+		ShellItemFilter::ItemType::FoldersAndFiles,
+		ShellItemFilter::HiddenItemPolicy::Exclude, children, {}));
+	EXPECT_FALSE(children.empty());
+
+	bool hasChildren = false;
+	ASSERT_HRESULT_SUCCEEDED(shellEnumerator.HasVisibleChildren(folderPidl.Raw(),
+		ShellItemFilter::HiddenItemPolicy::Exclude, hasChildren));
+	EXPECT_TRUE(hasChildren);
+}
+
+TEST_F(ShellEnumeratorImplTest, UnreadableWslDirectoryProbe)
+{
+	wchar_t rootPath[MAX_PATH]{};
+	DWORD length = GetEnvironmentVariableW(L"EXPLORERX_TEST_WSL_ROOT", rootPath, MAX_PATH);
+	if (length == 0)
+	{
+		GTEST_SKIP() << "Set EXPLORERX_TEST_WSL_ROOT to a WSL distribution root";
+	}
+	ASSERT_LT(length, static_cast<DWORD>(std::size(rootPath)));
+
+	PidlAbsolute rootPidl;
+	ASSERT_HRESULT_SUCCEEDED(SHParseDisplayName(rootPath, nullptr,
+		PidlOutParam(rootPidl), 0, nullptr));
+
+	ShellEnumeratorImpl shellEnumerator(nullptr);
+	std::vector<PidlChild> children;
+	ASSERT_HRESULT_SUCCEEDED(shellEnumerator.EnumerateDirectoryWithoutUI(rootPidl.Raw(),
+		ShellItemFilter::ItemType::FoldersAndFiles,
+		ShellItemFilter::HiddenItemPolicy::Include, children, {}));
+
+	wil::com_ptr_nothrow<IShellFolder> rootFolder;
+	ASSERT_HRESULT_SUCCEEDED(SHBindToObject(nullptr, rootPidl.Raw(), nullptr,
+		IID_PPV_ARGS(&rootFolder)));
+	for (const auto &child : children)
+	{
+		std::wstring name;
+		if (FAILED(GetDisplayName(rootFolder.get(), child.Raw(), SHGDN_INFOLDER, name))
+			|| name != L"lost+found")
+		{
+			continue;
+		}
+
+		PidlAbsolute unreadablePidl(ILCombine(rootPidl.Raw(), child.Raw()),
+			Pidl::takeOwnership);
+		bool hasChildren = true;
+		HRESULT hr = shellEnumerator.HasVisibleChildren(unreadablePidl.Raw(),
+			ShellItemFilter::HiddenItemPolicy::Include, hasChildren);
+		EXPECT_TRUE(FAILED(hr) || !hasChildren);
+		return;
+	}
+	GTEST_SKIP() << "The distribution has no lost+found directory";
+}
+
 TEST_F(ShellEnumeratorImplTest, StopToken)
 {
 	ShellEnumeratorImpl shellEnumerator(nullptr);

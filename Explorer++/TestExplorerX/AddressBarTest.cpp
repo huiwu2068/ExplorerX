@@ -76,6 +76,18 @@ TEST_F(AddressBarTest, DisplayUpdateAfterTabSwitch)
 	EXPECT_THAT(m_addressBarView->GetText(), StrCaseEq(path2));
 }
 
+TEST_F(AddressBarTest, OtherBrowserSelectionWhileThisAddressBarHasNoTabs)
+{
+	ASSERT_EQ(m_browser->GetActiveTabContainer()->GetNumTabs(), 0);
+
+	auto *otherBrowser = AddBrowser();
+	auto *otherTab = otherBrowser->AddTab(L"c:\\path");
+	NavigateTab(otherTab, L"c:\\another-path");
+
+	// A global selection or navigation event must not read this empty tab container.
+	EXPECT_EQ(m_browser->GetActiveTabContainer()->GetNumTabs(), 0);
+}
+
 TEST_F(AddressBarTest, SelectingBreadcrumbNavigatesToAncestor)
 {
 	std::wstring path = L"c:\\path\\to\\folder";

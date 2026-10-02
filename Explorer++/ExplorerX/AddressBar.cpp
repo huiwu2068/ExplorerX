@@ -62,7 +62,7 @@ void AddressBar::Initialize(TabEvents *tabEvents, ShellBrowserEvents *shellBrows
 	m_connections.push_back(tabEvents->AddSelectedObserver(
 		[this](const Tab &tab)
 		{
-			if (&tab == &m_tabContainer->GetSelectedTab())
+			if (tab.GetTabContainer() == m_tabContainer)
 			{
 				OnTabSelected(tab);
 			}
@@ -71,7 +71,8 @@ void AddressBar::Initialize(TabEvents *tabEvents, ShellBrowserEvents *shellBrows
 	m_connections.push_back(shellBrowserEvents->AddDirectoryPropertiesChangedObserver(
 		[this](const ShellBrowser *shellBrowser)
 		{
-			if (shellBrowser == GetSelectedShellBrowser())
+			if (m_tabContainer->GetNumTabs() > 0
+				&& shellBrowser == GetSelectedShellBrowser())
 			{
 				OnDirectoryPropertiesChanged(shellBrowser);
 			}
@@ -80,7 +81,8 @@ void AddressBar::Initialize(TabEvents *tabEvents, ShellBrowserEvents *shellBrows
 	m_connections.push_back(navigationEvents->AddCommittedObserver(
 		[this](const NavigationRequest *request)
 		{
-			if (request->GetShellBrowser() == GetSelectedShellBrowser())
+			if (m_tabContainer->GetNumTabs() > 0
+				&& request->GetShellBrowser() == GetSelectedShellBrowser())
 			{
 				OnNavigationCommitted(request);
 			}

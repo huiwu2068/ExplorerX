@@ -65,6 +65,7 @@ public:
 	virtual Tab *CreateTabFromPreservedTab(const PreservedTab *tab) = 0;
 	virtual bool CanMoveTabToOtherPane(const Tab &) const { return false; }
 	virtual void MoveTabToOtherPane(Tab &) {}
+	virtual bool CanBookmarkTab(const Tab &) const { return true; }
 
 	void OpenDefaultItem();
 	virtual void OpenDefaultItem(OpenFolderDisposition openFolderDisposition) = 0;

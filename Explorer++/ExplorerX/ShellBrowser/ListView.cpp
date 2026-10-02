@@ -267,6 +267,11 @@ LRESULT ShellBrowserImpl::ListViewParentProc(HWND hwnd, UINT uMsg, WPARAM wParam
 
 void ShellBrowserImpl::OnListViewClick(const NMITEMACTIVATE *eventInfo)
 {
+	if (IsFolderChevronHit(eventInfo->ptAction))
+	{
+		return;
+	}
+
 	if (!m_config->globalFolderSettings.oneClickActivate.get())
 	{
 		return;
@@ -287,6 +292,11 @@ void ShellBrowserImpl::OnListViewClick(const NMITEMACTIVATE *eventInfo)
 
 void ShellBrowserImpl::OnListViewDoubleClick(const NMITEMACTIVATE *eventInfo)
 {
+	if (IsFolderChevronHit(eventInfo->ptAction))
+	{
+		return;
+	}
+
 	// Note that while it's stated in the documentation for both NM_CLICK and NM_DBLCLK that "The
 	// iItem member of lParam is only valid if the icon or first-column label has been clicked.", it
 	// appears that's not actually the case. From testing, iItem will be correctly populated even
@@ -316,6 +326,13 @@ void ShellBrowserImpl::OnListViewDoubleClick(const NMITEMACTIVATE *eventInfo)
 
 bool ShellBrowserImpl::OnListViewLeftButtonDoubleClick(const POINT *pt)
 {
+	// The second click of a double-click arrives as WM_LBUTTONDBLCLK, not WM_LBUTTONDOWN.
+	// Consume it on the chevron so the list view doesn't navigate into the folder.
+	if (OnListViewLeftButtonDown(pt))
+	{
+		return true;
+	}
+
 	if (!m_config->goUpOnDoubleClick)
 	{
 		return false;
@@ -1718,6 +1735,12 @@ LRESULT ShellBrowserImpl::OnListViewCustomDraw(NMLVCUSTOMDRAW *listViewCustomDra
 		LRESULT result = CDRF_DODEFAULT;
 		const auto &itemInfo =
 			GetItemByIndex(static_cast<int>(listViewCustomDraw->nmcd.dwItemSpec));
+		if (m_folderSettings.viewMode == +ViewMode::Details && IsExpandableFoldersEnabled()
+			&& (itemInfo.wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+		{
+			CheckFolderChildren(GetItemInternalIndex(
+				static_cast<int>(listViewCustomDraw->nmcd.dwItemSpec)));
+		}
 
 		for (const auto &colorRule : m_appServices->GetColorRuleModel()->GetItems())
 		{
@@ -1761,7 +1784,8 @@ LRESULT ShellBrowserImpl::OnListViewCustomDraw(NMLVCUSTOMDRAW *listViewCustomDra
 		}
 
 		if (m_folderSettings.viewMode == +ViewMode::Details && IsExpandableFoldersEnabled()
-			&& (itemInfo.wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+			&& (itemInfo.wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+			&& itemInfo.hasChildrenChecked && itemInfo.hasChildren)
 		{
 			result |= CDRF_NOTIFYPOSTPAINT;
 		}
@@ -1777,7 +1801,8 @@ LRESULT ShellBrowserImpl::OnListViewCustomDraw(NMLVCUSTOMDRAW *listViewCustomDra
 			if (itemIndex >= 0 && itemIndex < ListView_GetItemCount(m_listView))
 			{
 				const auto &itemInfo = GetItemByIndex(itemIndex);
-				if (itemInfo.wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+				if ((itemInfo.wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+					&& itemInfo.hasChildrenChecked && itemInfo.hasChildren)
 				{
 					RECT rcIcon{};
 					if (ListView_GetItemRect(m_listView, itemIndex, &rcIcon, LVIR_ICON))
@@ -1802,52 +1827,59 @@ LRESULT ShellBrowserImpl::OnListViewCustomDraw(NMLVCUSTOMDRAW *listViewCustomDra
 
 bool ShellBrowserImpl::OnListViewLeftButtonDown(const POINT *pt)
 {
+	int itemIndex = -1;
+	if (!IsFolderChevronHit(*pt, &itemIndex))
+	{
+		return false;
+	}
+
+	ToggleFolderExpanded(itemIndex);
+	return true;
+}
+
+bool ShellBrowserImpl::IsFolderChevronHit(const POINT &pt, int *itemIndex) const
+{
 	if (m_folderSettings.viewMode != +ViewMode::Details || !IsExpandableFoldersEnabled())
 	{
 		return false;
 	}
 
-	LVHITTESTINFO htInfo{};
-	htInfo.pt = *pt;
-	int itemIndex = ListView_HitTest(m_listView, &htInfo);
-	if (itemIndex == -1)
+	int first = ListView_GetTopIndex(m_listView);
+	int last = std::min(ListView_GetItemCount(m_listView),
+		first + ListView_GetCountPerPage(m_listView) + 1);
+	for (int index = first; index < last; ++index)
 	{
-		// Clicking in the indent area to the left of the icon may report LVHT_NOWHERE.
-		// Test a point shifted to the right on the same row to find the item index.
-		LVHITTESTINFO htRow{};
-		htRow.pt.x = pt->x + 50;
-		htRow.pt.y = pt->y;
-		itemIndex = ListView_HitTest(m_listView, &htRow);
-	}
-
-	if (itemIndex < 0 || itemIndex >= ListView_GetItemCount(m_listView))
-	{
-		return false;
-	}
-
-	const auto &itemInfo = GetItemByIndex(itemIndex);
-	if (!(itemInfo.wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-	{
-		return false;
-	}
-
-	RECT rcIcon{};
-	if (ListView_GetItemRect(m_listView, itemIndex, &rcIcon, LVIR_ICON))
-	{
-		RECT rcChevron;
-		int glyphSize = 16;
-		rcChevron.right = rcIcon.left;
-		rcChevron.left = rcChevron.right - glyphSize;
-		rcChevron.top = rcIcon.top;
-		rcChevron.bottom = rcIcon.bottom;
-
-		InflateRect(&rcChevron, 4, 2);
-
-		if (PtInRect(&rcChevron, *pt))
+		RECT rowRect{};
+		if (!ListView_GetItemRect(m_listView, index, &rowRect, LVIR_BOUNDS)
+			|| pt.y < rowRect.top || pt.y >= rowRect.bottom)
 		{
-			ToggleFolderExpanded(itemIndex);
+			continue;
+		}
+
+		const auto &item = GetItemByIndex(index);
+		if (!(item.wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+			|| !item.hasChildrenChecked || !item.hasChildren)
+		{
+			return false;
+		}
+
+		RECT iconRect{};
+		if (!ListView_GetItemRect(m_listView, index, &iconRect, LVIR_ICON))
+		{
+			return false;
+		}
+
+		RECT chevronRect = { iconRect.left - 20, iconRect.top - 2,
+			iconRect.left + 4, iconRect.bottom + 2 };
+		if (PtInRect(&chevronRect, pt))
+		{
+			if (itemIndex)
+			{
+				*itemIndex = index;
+			}
 			return true;
 		}
+		return false;
 	}
 
 	return false;

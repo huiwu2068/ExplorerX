@@ -17,6 +17,12 @@ ExplorerX is a fast, portable Windows file manager that preserves the native She
 | Command-line workflow | Open Windows Terminal at the active folder. |
 | Keep the Windows experience | Reuses the native Windows context menu and Shell extensions, so installed extensions such as 7-Zip, Git, VS Code, WinRAR, and security tools continue to work through Windows. |
 
+## Latest release: [v1.5.2](https://github.com/huiwu2068/ExplorerX/releases/tag/v1.5.2)
+
+- Drag a folder tab out of the tab bar to create a bookmark in the bookmarks toolbar or a bookmark folder. Search result tabs cannot be bookmarked this way.
+- Folder expansion in Details view now loads asynchronously and falls back to Windows Shell enumeration for locations such as WSL. Empty folders do not show an expand chevron, and chevron clicks no longer trigger folder navigation.
+- Fixed an address bar crash when a pane has no tabs while another pane changes selection or navigates.
+
 ## Key features
 
 ### Everything search
@@ -35,6 +41,7 @@ ExplorerX is a fast, portable Windows file manager that preserves the native She
 - Expand folders into a hierarchy directly within the Details view.
 - Use the expand chevron, or `Right` to expand and `Left` to collapse, without repeatedly entering and leaving folders.
 - Child items load through an asynchronous fast path; hierarchical sorting, selection, drag and drop, and the native Shell context menu remain available.
+- Shell enumeration fallback supports virtual and WSL locations. Empty or inaccessible folders are probed without showing Shell error dialogs.
 
 ### Native, lightweight performance improvements
 

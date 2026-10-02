@@ -195,6 +195,9 @@ struct ItemInfo_t
 	bool isExpanded = false;
 	bool hasChildrenLoaded = false;
 	bool hasChildren = true;
+	bool hasChildrenChecked = false;
+	bool isCheckingChildren = false;
+	int expansionRequestId = 0;
 	bool isChildItem = false;
 
 	ItemInfo_t() = default;

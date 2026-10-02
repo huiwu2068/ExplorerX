@@ -4,6 +4,7 @@
 
 #include "pch.h"
 #include "TabView.h"
+#include "TabViewDelegate.h"
 #include "Config.h"
 #include <gtest/gtest.h>
 #include <wil/resource.h>
@@ -55,6 +56,26 @@ private:
 	TestTabView(HWND parent, const Config *config) : TabView(parent, WS_CHILD, config)
 	{
 	}
+};
+
+class RecordingTabViewDelegate : public TabViewDelegate
+{
+public:
+	void OnTabMoved(int fromIndex, int toIndex) override
+	{
+		movedTabs.emplace_back(fromIndex, toIndex);
+	}
+
+	void OnTabDraggedOutside(int index) override
+	{
+		externalDragIndexes.push_back(index);
+	}
+
+	bool ShouldRemoveIcon(int) override { return false; }
+	void OnSelectionChanged() override {}
+
+	std::vector<std::pair<int, int>> movedTabs;
+	std::vector<int> externalDragIndexes;
 };
 
 }
@@ -150,4 +171,62 @@ TEST_F(TabViewTest, GetNumTabs)
 
 	m_view->RemoveTab(0);
 	EXPECT_EQ(m_view->GetNumTabs(), 0);
+}
+
+TEST_F(TabViewTest, DraggingTabOutsideStartsExternalDrag)
+{
+	m_view->AddTab(std::make_unique<TestTabViewItem>(L"Tab"), 0);
+	SetWindowPos(m_view->GetHWND(), nullptr, 0, 0, 300, 40, SWP_NOZORDER);
+	RecordingTabViewDelegate delegate;
+	m_view->SetDelegate(&delegate);
+
+	RECT tabRect;
+	ASSERT_TRUE(TabCtrl_GetItemRect(m_view->GetHWND(), 0, &tabRect));
+	int x = (tabRect.left + tabRect.right) / 2;
+	int y = (tabRect.top + tabRect.bottom) / 2;
+	SendMessage(m_view->GetHWND(), WM_LBUTTONDOWN, MK_LBUTTON, MAKELPARAM(x, y));
+	SendMessage(m_view->GetHWND(), WM_MOUSEMOVE, MK_LBUTTON, MAKELPARAM(x, -20));
+
+	EXPECT_EQ(delegate.externalDragIndexes, std::vector<int>{ 0 });
+	EXPECT_TRUE(delegate.movedTabs.empty());
+}
+
+TEST_F(TabViewTest, DraggingAnotherTabOutsideUsesThatTab)
+{
+	AddTabs({ L"First", L"Second" });
+	SetWindowPos(m_view->GetHWND(), nullptr, 0, 0, 300, 40, SWP_NOZORDER);
+	RecordingTabViewDelegate delegate;
+	m_view->SetDelegate(&delegate);
+
+	RECT secondRect;
+	ASSERT_TRUE(TabCtrl_GetItemRect(m_view->GetHWND(), 1, &secondRect));
+	int x = (secondRect.left + secondRect.right) / 2;
+	int y = (secondRect.top + secondRect.bottom) / 2;
+	SendMessage(m_view->GetHWND(), WM_LBUTTONDOWN, MK_LBUTTON, MAKELPARAM(x, y));
+	SendMessage(m_view->GetHWND(), WM_MOUSEMOVE, MK_LBUTTON, MAKELPARAM(x, -20));
+
+	EXPECT_EQ(delegate.externalDragIndexes, std::vector<int>{ 1 });
+}
+
+TEST_F(TabViewTest, DraggingWithinTabBarStillReordersTabs)
+{
+	auto tabs = AddTabs({ L"First", L"Second" });
+	SetWindowPos(m_view->GetHWND(), nullptr, 0, 0, 300, 40, SWP_NOZORDER);
+	RecordingTabViewDelegate delegate;
+	m_view->SetDelegate(&delegate);
+
+	RECT firstRect;
+	RECT secondRect;
+	ASSERT_TRUE(TabCtrl_GetItemRect(m_view->GetHWND(), 0, &firstRect));
+	ASSERT_TRUE(TabCtrl_GetItemRect(m_view->GetHWND(), 1, &secondRect));
+	int y = (firstRect.top + firstRect.bottom) / 2;
+	SendMessage(m_view->GetHWND(), WM_LBUTTONDOWN, MK_LBUTTON,
+		MAKELPARAM((firstRect.left + firstRect.right) / 2, y));
+	SendMessage(m_view->GetHWND(), WM_MOUSEMOVE, MK_LBUTTON,
+		MAKELPARAM(secondRect.right - 2, y));
+	SendMessage(m_view->GetHWND(), WM_LBUTTONUP, 0, MAKELPARAM(secondRect.right - 2, y));
+
+	EXPECT_EQ(m_view->GetTabAtIndex(0), tabs[1]);
+	EXPECT_EQ(m_view->GetTabAtIndex(1), tabs[0]);
+	EXPECT_TRUE(delegate.externalDragIndexes.empty());
 }

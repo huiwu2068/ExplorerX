@@ -14,7 +14,17 @@ public:
 	HRESULT EnumerateDirectory(PCIDLIST_ABSOLUTE pidlDirectory, ShellItemFilter::ItemType itemType,
 		ShellItemFilter::HiddenItemPolicy hiddenItemPolicy, std::vector<PidlChild> &outputItems,
 		std::stop_token stopToken) const override;
+	HRESULT EnumerateDirectoryWithoutUI(PCIDLIST_ABSOLUTE pidlDirectory,
+		ShellItemFilter::ItemType itemType,
+		ShellItemFilter::HiddenItemPolicy hiddenItemPolicy, std::vector<PidlChild> &outputItems,
+		std::stop_token stopToken) const;
+	HRESULT HasVisibleChildren(PCIDLIST_ABSOLUTE pidlDirectory,
+		ShellItemFilter::HiddenItemPolicy hiddenItemPolicy, bool &hasChildren) const;
 
 private:
+	HRESULT EnumerateDirectoryInternal(PCIDLIST_ABSOLUTE pidlDirectory,
+		ShellItemFilter::ItemType itemType,
+		ShellItemFilter::HiddenItemPolicy hiddenItemPolicy, std::vector<PidlChild> &outputItems,
+		std::stop_token stopToken, HWND dialogOwner) const;
 	const HWND m_embedder;
 };

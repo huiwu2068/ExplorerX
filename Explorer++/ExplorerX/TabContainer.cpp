@@ -25,11 +25,14 @@
 #include "../Helper/CachedIcons.h"
 #include "../Helper/Controls.h"
 #include "../Helper/DpiCompatibility.h"
+#include "../Helper/DragDropHelper.h"
+#include "../Helper/DropSourceImpl.h"
 #include "../Helper/ShellHelper.h"
 #include "../Helper/WeakPtrFactory.h"
 #include "../Helper/WindowHelper.h"
 #include <boost/algorithm/string.hpp>
 #include <glog/logging.h>
+#include <wil/com.h>
 #include <ranges>
 
 using namespace std::chrono_literals;
@@ -687,6 +690,32 @@ void TabContainer::OnTabMoved(int fromIndex, int toIndex)
 {
 	const Tab &tab = GetTabByIndex(toIndex);
 	m_tabEvents->NotifyMoved(tab, fromIndex, toIndex);
+}
+
+void TabContainer::OnTabDraggedOutside(int index)
+{
+	const Tab &tab = GetTabByIndex(index);
+	if (!m_browser->CanBookmarkTab(tab))
+	{
+		return;
+	}
+
+	const auto &directory = tab.GetShellBrowser()->GetDirectory();
+	if (!directory.Raw())
+	{
+		return;
+	}
+
+	wil::com_ptr_nothrow<IDataObject> dataObject;
+	if (FAILED(CreateDataObjectForShellTransfer(
+			std::vector<PCIDLIST_ABSOLUTE>{ directory.Raw() }, &dataObject)))
+	{
+		return;
+	}
+
+	auto dropSource = winrt::make_self<DropSourceImpl>();
+	DWORD effect;
+	DoDragDrop(dataObject.get(), dropSource.get(), DROPEFFECT_LINK, &effect);
 }
 
 bool TabContainer::ShouldRemoveIcon(int iconIndex)

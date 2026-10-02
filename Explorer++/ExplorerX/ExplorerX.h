@@ -92,6 +92,7 @@ public:
 	Tab *CreateTabFromPreservedTab(const PreservedTab *tab) override;
 	bool CanMoveTabToOtherPane(const Tab &tab) const override;
 	void MoveTabToOtherPane(Tab &tab) override;
+	bool CanBookmarkTab(const Tab &tab) const override;
 	using BrowserWindow::OpenDefaultItem;
 	using BrowserWindow::OpenItem;
 	void OpenDefaultItem(OpenFolderDisposition openFolderDisposition) override;
